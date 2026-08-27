@@ -1,0 +1,29 @@
+{
+  "name": "jobos",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev": "pnpm --filter @jobos/web dev",
+    "worker": "pnpm --filter @jobos/worker start",
+    "build": "pnpm -r build",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "test:integration": "VITEST_MODE=integration vitest run",
+    "db:migrate": "pnpm --filter @jobos/db migrate",
+    "db:seed": "pnpm --filter @jobos/db seed",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@playwright/test": "^1.49.1",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.19.0",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
+  }
+}

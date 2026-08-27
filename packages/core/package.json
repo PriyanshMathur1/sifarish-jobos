@@ -1,0 +1,17 @@
+{
+  "name": "@jobos/core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "dependencies": {
+    "pg-boss": "^10.1.5",
+    "pino": "^9.5.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": { "typescript": "^5.7.2", "@types/node": "^22.10.2" }
+}
