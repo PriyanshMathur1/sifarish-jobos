@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { auth } from "@/auth";
-import { getDb, schema } from "@jobos/db";
+import { signOut } from "@/auth";
+import { requireUser } from "@/lib/session";
+import { getDb, profilesRepo, usersRepo, audit } from "@jobos/db";
 
 const csv = (s: FormDataEntryValue | null) =>
   String(s ?? "")
@@ -21,9 +22,7 @@ const profileInput = z.object({
 });
 
 export async function updateProfile(formData: FormData): Promise<void> {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/signin");
-  const userId = session.user.id;
+  const { userId } = await requireUser();
 
   const parsed = profileInput.parse({
     fullName: formData.get("fullName"),
@@ -33,28 +32,31 @@ export async function updateProfile(formData: FormData): Promise<void> {
     locations: csv(formData.get("locations")),
   });
 
-  const db = getDb();
-  await db
-    .insert(schema.profiles)
-    .values({
-      userId,
-      fullName: parsed.fullName || null,
-      currentTitle: parsed.currentTitle || null,
-      yearsExperience: parsed.yearsExperience === "" ? null : parsed.yearsExperience,
-      skills: parsed.skills,
-      locations: parsed.locations,
-      summarySource: "manual",
-    })
-    .onConflictDoUpdate({
-      target: schema.profiles.userId,
-      set: {
-        fullName: parsed.fullName || null,
-        currentTitle: parsed.currentTitle || null,
-        yearsExperience: parsed.yearsExperience === "" ? null : parsed.yearsExperience,
-        skills: parsed.skills,
-        locations: parsed.locations,
-      },
-    });
+  await profilesRepo.upsertProfile(getDb(), userId, {
+    fullName: parsed.fullName || null,
+    currentTitle: parsed.currentTitle || null,
+    yearsExperience: parsed.yearsExperience === "" ? null : parsed.yearsExperience,
+    skills: parsed.skills,
+    locations: parsed.locations,
+  });
 
   revalidatePath("/profile");
+}
+
+/**
+ * Account deletion (PRD §10, §109): audited, then the user row is removed and
+ * every owned table cascades. The session cookie dies with its DB row.
+ */
+export async function deleteAccount(): Promise<void> {
+  const { userId } = await requireUser();
+  const db = getDb();
+  await audit(db, {
+    actorId: userId,
+    action: "account.delete",
+    subjectType: "user",
+    subjectId: userId,
+  });
+  await usersRepo.deleteUserAccount(db, userId);
+  await signOut({ redirect: false });
+  redirect("/signin");
 }

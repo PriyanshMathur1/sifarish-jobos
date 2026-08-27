@@ -1,4 +1,7 @@
+import { drizzle } from "drizzle-orm/node-postgres";
+import pg from "pg";
 import { getDb, closeDb } from "./client.ts";
+import * as schema from "./schema/index.ts";
 import { users, profiles, candidatePreferences } from "./schema/index.ts";
 
 /**
@@ -7,8 +10,19 @@ import { users, profiles, candidatePreferences } from "./schema/index.ts";
  * Idempotent — safe to re-run.
  */
 export async function seed(connectionString?: string): Promise<void> {
-  const db = getDb(connectionString);
+  // With an explicit URL (tests), own the pool and close it on exit.
+  const ownPool = connectionString ? new pg.Pool({ connectionString, max: 2 }) : null;
+  const db = ownPool ? drizzle(ownPool, { schema }) : getDb();
+  try {
+    await seedInto(db);
+  } finally {
+    await ownPool?.end();
+  }
+}
 
+type SeedDb = ReturnType<typeof getDb>;
+
+async function seedInto(db: SeedDb): Promise<void> {
   const [dev] = await db
     .insert(users)
     .values({ email: "dev@jobos.local", name: "Dev User", role: "admin" })

@@ -3,7 +3,8 @@ import pg from "pg";
 import { runMigrations } from "./migrate.ts";
 import { seed } from "./seed.ts";
 
-const TEST_URL = process.env.TEST_DATABASE_URL ?? "postgres://jobos:jobos@localhost:5432/jobos_test";
+const TEST_URL =
+  process.env.TEST_DATABASE_URL ?? "postgres://jobos:jobos@localhost:5432/jobos_test";
 
 async function resetDb(): Promise<void> {
   const pool = new pg.Pool({ connectionString: TEST_URL, max: 1 });

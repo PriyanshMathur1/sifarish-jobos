@@ -20,8 +20,15 @@ export type JobHandler<T> = (payload: T, ctx: { jobId: string }) => Promise<void
 export interface Queue {
   start(): Promise<void>;
   stop(): Promise<void>;
-  enqueue<T extends object>(name: string, payload: T, opts?: EnqueueOptions): Promise<string | null>;
+  enqueue<T extends object>(
+    name: string,
+    payload: T,
+    opts?: EnqueueOptions,
+  ): Promise<string | null>;
   schedule(name: string, cron: string, tz: string): Promise<void>;
+  /** Attach a handler without polling — used by drain mode. */
+  register<T extends object>(name: string, handler: JobHandler<T>): void;
+  /** Attach a handler AND start polling (long-lived worker mode). */
   work<T extends object>(name: string, handler: JobHandler<T>): Promise<void>;
   /** Drain up to `max` pending jobs of `name` synchronously (Vercel-cron batch mode). */
   drain(name: string, max: number): Promise<number>;

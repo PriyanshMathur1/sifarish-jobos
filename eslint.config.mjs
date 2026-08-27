@@ -2,12 +2,24 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/node_modules/**", "**/.next/**", "**/dist/**", "**/drizzle/**", "**/playwright-report/**"] },
+  {
+    ignores: [
+      "**/node_modules/**",
+      "**/.next/**",
+      "**/dist/**",
+      "**/drizzle/**",
+      "**/playwright-report/**",
+      "**/next-env.d.ts",
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
     rules: {
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
       "no-console": ["warn", { allow: ["warn", "error"] }],
     },
   },
@@ -30,7 +42,11 @@ export default tseslint.config(
     rules: {
       "no-restricted-globals": [
         "error",
-        { name: "fetch", message: "Use SafeFetcher — raw fetch bypasses SSRF guard, rate limits, and the circuit breaker." },
+        {
+          name: "fetch",
+          message:
+            "Use SafeFetcher — raw fetch bypasses SSRF guard, rate limits, and the circuit breaker.",
+        },
       ],
     },
   },

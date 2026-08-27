@@ -15,7 +15,7 @@ export default defineConfig({
   webServer: {
     command: "pnpm --filter @jobos/web dev",
     url: "http://localhost:3000/api/health",
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
 });

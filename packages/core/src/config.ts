@@ -21,7 +21,12 @@ const envSchema = z.object({
   MARKET_COUNTRIES: z
     .string()
     .default("IN")
-    .transform((s) => s.split(",").map((c) => c.trim().toUpperCase()).filter(Boolean)),
+    .transform((s) =>
+      s
+        .split(",")
+        .map((c) => c.trim().toUpperCase())
+        .filter(Boolean),
+    ),
   CRON_SECRET: z.string().min(8),
 
   // Required in prod, optional in dev
@@ -56,9 +61,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   );
   const parsed = envSchema.safeParse(cleaned);
   if (!parsed.success) {
-    const names = parsed.error.issues
-      .map((i) => `${i.path.join(".")}: ${i.message}`)
-      .join("; ");
+    const names = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
     throw new Error(`Invalid environment configuration — ${names}`);
   }
   if (env === process.env) cached = parsed.data;

@@ -44,3 +44,14 @@ Format: `[phase.n] Title — acceptance criteria`. Sequential within a phase; �
 - **[2.11] Final hardening + docs** — rate limits on submit/search/outreach; security headers; README/ARCHITECTURE/DATABASE/DATA_SOURCES/SECURITY/DEPLOYMENT(+Vercel/Neon runbook)/RUNBOOK; `.env.example` final. AC: full CI green; docs list implemented vs fallback providers + known limitations.
 
 Checkpoint after each phase: lint → typecheck → unit → integration → migrations-from-zero → E2E → `mattpocock-skills:code-review` → commit to `Desktop/Code/02 Fintech & Product/jobos`.
+
+## Phase 0 review log (post code-review amendments)
+
+- getDb(url): explicit connection strings now always get their own pool (was: silently served the cached default DB).
+- Repository layer added (`packages/db/src/repo/*`) — owner-scoped choke point in place from the first user-owned table; web pages/actions use `requireUser()`/`requireAdmin()`.
+- Account deletion action shipped + E2E (ticket 0.4 gap).
+- Cron endpoint now actually enqueues + drains via the shared handler registry in `@jobos/core` (ticket 0.5 gap); queue integration tests cover enqueue/register/drain, singleton dedup (pg-boss "short" policy), and failure containment.
+- Request correlation id middleware added; API routes log via `requestLogger`.
+- Prettier config + `format:check` in CI; timing-safe CRON_SECRET compare; fileURLToPath for FS paths.
+- DECISION (amends ticket 0.3): no `profile_skills` join table until the taxonomy `skills` table exists (Phase 1) — profile skills are a jsonb array meanwhile; migration to the join table happens with ticket 1.3.
+- ACKNOWLEDGED scope-ahead: security headers (2.11), profile editor (Phase 2 slice), `authenticators` table (WebAuthn-ready, unused) — kept deliberately.

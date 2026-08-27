@@ -1,20 +1,19 @@
 import { config as loadDotenv } from "dotenv";
-loadDotenv({ path: new URL("../../../.env", import.meta.url).pathname });
+import { fileURLToPath } from "node:url";
+loadDotenv({ path: fileURLToPath(new URL("../../../.env", import.meta.url)) });
 
-import { loadConfig, logger, PgBossQueue, QUEUES } from "@jobos/core";
-import { registerHandlers } from "./handlers.ts";
+import { loadConfig, logger, PgBossQueue, QUEUES, registerHandlers } from "@jobos/core";
 
 /**
  * Long-lived worker (local/VPS mode). The same handlers serve the
- * serverless batch-drain endpoint in Vercel mode (grill G8) — dual-mode
- * by construction: handlers know nothing about how they are invoked.
+ * serverless batch-drain endpoint in Vercel mode (grill G8).
  */
 async function main() {
   const config = loadConfig();
   const queue = new PgBossQueue(config.DATABASE_URL);
   await queue.start();
 
-  await registerHandlers(queue, config);
+  registerHandlers(queue, config, { mode: "worker" });
   await queue.schedule(QUEUES.refreshOrchestrate, config.JOB_REFRESH_SCHEDULE, config.APP_TZ);
 
   logger.info(

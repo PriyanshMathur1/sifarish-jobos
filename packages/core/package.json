@@ -7,11 +7,18 @@
     ".": "./src/index.ts",
     "./*": "./src/*.ts"
   },
-  "scripts": { "typecheck": "tsc --noEmit" },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
+    "pg": "^8.13.1",
     "pg-boss": "^10.1.5",
     "pino": "^9.5.0",
     "zod": "^3.24.1"
   },
-  "devDependencies": { "typescript": "^5.7.2", "@types/node": "^22.10.2" }
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.7.2"
+  }
 }

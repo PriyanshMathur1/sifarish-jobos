@@ -1,19 +1,12 @@
-import { auth } from "@/auth";
-import { getDb, schema } from "@jobos/db";
-import { eq } from "drizzle-orm";
-import { redirect } from "next/navigation";
-import { updateProfile } from "./actions";
+import { getDb, profilesRepo } from "@jobos/db";
+import { requireUser } from "@/lib/session";
+import { updateProfile, deleteAccount } from "./actions";
 
 export const metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/signin");
-  const db = getDb();
-  const [profile] = await db
-    .select()
-    .from(schema.profiles)
-    .where(eq(schema.profiles.userId, session.user.id));
+  const { userId } = await requireUser();
+  const profile = await profilesRepo.getProfile(getDb(), userId);
 
   return (
     <div className="max-w-xl">
@@ -54,6 +47,22 @@ export default async function ProfilePage() {
           Save profile
         </button>
       </form>
+
+      <section className="mt-12 border-t border-line pt-6">
+        <h2 className="text-sm font-semibold text-warn">Danger zone</h2>
+        <p className="mt-1 text-sm text-muted">
+          Deleting your account removes your profile, preferences, contacts, outreach history, and
+          applications permanently.
+        </p>
+        <form action={deleteAccount} className="mt-3">
+          <button
+            type="submit"
+            className="rounded-lg border border-warn px-4 py-2 text-sm font-medium text-warn hover:bg-warn hover:text-paper"
+          >
+            Delete account and all data
+          </button>
+        </form>
+      </section>
     </div>
   );
 }

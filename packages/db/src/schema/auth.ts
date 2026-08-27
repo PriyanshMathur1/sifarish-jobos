@@ -1,12 +1,4 @@
-import {
-  boolean,
-  integer,
-  pgTable,
-  primaryKey,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { id, createdAt } from "./helpers.ts";
 
 /** Auth.js-compatible tables (drizzle adapter shape) + our extensions. */
@@ -17,7 +9,9 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   emailVerified: timestamp("email_verified", { withTimezone: true }),
   image: text("image"),
-  role: text("role", { enum: ["user", "admin"] }).notNull().default("user"),
+  role: text("role", { enum: ["user", "admin"] })
+    .notNull()
+    .default("user"),
   createdAt: createdAt(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });

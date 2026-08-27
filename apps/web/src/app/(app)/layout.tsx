@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth, signOut } from "@/auth";
-import { getDb, schema } from "@jobos/db";
-import { eq } from "drizzle-orm";
+import { signOut } from "@/auth";
+import { requireUser, isAdmin } from "@/lib/session";
 
 const nav = [
   { href: "/jobs", label: "Jobs" },
@@ -13,15 +11,8 @@ const nav = [
 ] as const;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/signin");
-
-  const db = getDb();
-  const [me] = await db
-    .select({ role: schema.users.role })
-    .from(schema.users)
-    .where(eq(schema.users.id, session.user.id));
-  const isAdmin = me?.role === "admin";
+  const { userId } = await requireUser();
+  const admin = await isAdmin(userId);
 
   return (
     <div className="min-h-screen pb-16 sm:pb-0">
@@ -40,7 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 {n.label}
               </Link>
             ))}
-            {isAdmin ? (
+            {admin ? (
               <Link
                 href="/admin"
                 className="rounded-md px-3 py-1.5 text-sm text-muted hover:bg-accent-soft hover:text-ink"

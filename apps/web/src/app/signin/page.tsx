@@ -37,13 +37,15 @@ export default async function SignInPage() {
       <form
         action={async (formData: FormData) => {
           "use server";
-          const email = String(formData.get("email") ?? "");
+          const { z } = await import("zod");
+          const email = z.string().email().max(320).parse(formData.get("email"));
           await signIn("nodemailer", { email, redirectTo: "/jobs" });
         }}
         className="flex flex-col gap-2"
       >
         <label htmlFor="email" className="text-sm font-medium">
-          Email magic link{process.env.SMTP_URL ? "" : " (dev: link is logged to the server console)"}
+          Email magic link
+          {process.env.SMTP_URL ? "" : " (dev: link is logged to the server console)"}
         </label>
         <input
           id="email"
