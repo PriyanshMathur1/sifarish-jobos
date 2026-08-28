@@ -2,7 +2,10 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
-  timeout: 60_000,
+  timeout: 90_000,
+  // Dev-server cold compiles routinely exceed the 5s default in CI containers.
+  expect: { timeout: 20_000 },
+  workers: 1, // tests share one database — serialize files
   use: {
     baseURL: process.env.APP_URL ?? "http://localhost:3000",
     trace: "retain-on-failure",

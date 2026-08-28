@@ -2,7 +2,14 @@ import { config as loadDotenv } from "dotenv";
 import { fileURLToPath } from "node:url";
 loadDotenv({ path: fileURLToPath(new URL("../../../.env", import.meta.url)) });
 
-import { loadConfig, logger, PgBossQueue, QUEUES, registerHandlers } from "@jobos/core";
+import {
+  loadConfig,
+  logger,
+  PgBossQueue,
+  QUEUES,
+  registerHandlers,
+  recoverMissedRun,
+} from "@jobos/core";
 
 /**
  * Long-lived worker (local/VPS mode). The same handlers serve the
@@ -15,6 +22,7 @@ async function main() {
 
   registerHandlers(queue, config, { mode: "worker" });
   await queue.schedule(QUEUES.refreshOrchestrate, config.JOB_REFRESH_SCHEDULE, config.APP_TZ);
+  await recoverMissedRun(queue, config); // PRD §144: at most one catch-up run
 
   logger.info(
     { schedule: config.JOB_REFRESH_SCHEDULE, tz: config.APP_TZ },

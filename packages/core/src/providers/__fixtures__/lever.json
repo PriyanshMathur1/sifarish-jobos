@@ -1,0 +1,48 @@
+[
+  {
+    "id": "09c9d0cd-f422-4138-a065-8d45e71d01a7",
+    "text": "Assistant Manager(Controllership)",
+    "country": "IN",
+    "categories": {
+      "commitment": "Fulltime- Office",
+      "location": "Bengaluru",
+      "team": "Finance",
+      "allLocations": ["Bengaluru"]
+    },
+    "createdAt": 1785842845029,
+    "workplaceType": "onsite",
+    "descriptionPlain": "About Fam (previously FamPay)\n\nFam is India's first payments app for everyone above 11.",
+    "description": "<div><strong><span style=\"font-size: 18px;\">About Fam (previously FamPay)</span></strong></div>\n<div>Fam is India's first payments app for everyone above 11.</div>",
+    "lists": [
+      {
+        "text": "On the Job",
+        "content": "<li>Maintain accurate and up-to-date financial records.</li>"
+      }
+    ],
+    "hostedUrl": "https://jobs.lever.co/fampay/09c9d0cd-f422-4138-a065-8d45e71d01a7",
+    "applyUrl": "https://jobs.lever.co/fampay/09c9d0cd-f422-4138-a065-8d45e71d01a7/apply"
+  },
+  {
+    "id": "54c74111-28a1-44bf-ad9d-72312f3c64a9",
+    "text": "Brand Marketing Manager",
+    "country": "IN",
+    "categories": {
+      "commitment": "Full Time",
+      "location": "Bengaluru",
+      "team": "Marketing",
+      "allLocations": ["Bengaluru"]
+    },
+    "createdAt": 1781082434489,
+    "workplaceType": "onsite",
+    "descriptionPlain": "About Fam (previously FamPay)",
+    "description": "<div><strong>About Fam (previously FamPay)</strong></div>\n<h3>About this Role</h3>\n<p>At Fam, we believe great marketing.</p>",
+    "lists": [
+      {
+        "text": "Must Haves",
+        "content": "<li>Under-graduate degree in marketing, business, communication, or related field</li>"
+      }
+    ],
+    "hostedUrl": "https://jobs.lever.co/fampay/54c74111-28a1-44bf-ad9d-72312f3c64a9",
+    "applyUrl": "https://jobs.lever.co/fampay/54c74111-28a1-44bf-ad9d-72312f3c64a9/apply"
+  }
+]

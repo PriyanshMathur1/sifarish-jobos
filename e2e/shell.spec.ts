@@ -15,7 +15,8 @@ test("signed-in user can navigate every section (ticket 0.7)", async ({ context,
 
   for (const section of ["Contacts", "Outreach", "Tracker", "Profile"]) {
     await page.getByRole("navigation", { name: "Primary" }).getByText(section).click();
-    await expect(page).toHaveURL(new RegExp(`/${section.toLowerCase()}`));
+    // Dev-server first-compile of a section can exceed the default 5s.
+    await expect(page).toHaveURL(new RegExp(`/${section.toLowerCase()}`), { timeout: 20000 });
   }
 
   // Non-admin never sees the Admin nav item

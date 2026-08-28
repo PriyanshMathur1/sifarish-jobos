@@ -1,7 +1,10 @@
+import { config as loadDotenv } from "dotenv";
+import { fileURLToPath } from "node:url";
+loadDotenv({ path: fileURLToPath(new URL("../../../.env", import.meta.url)) });
+
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
-import { fileURLToPath } from "node:url";
 
 /** Applies ./drizzle SQL migrations. Used by dev bootstrap, CI, and tests. */
 export async function runMigrations(connectionString: string): Promise<void> {

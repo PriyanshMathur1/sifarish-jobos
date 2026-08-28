@@ -6,3 +6,4 @@ export * from "./schema/index.ts";
 export * as usersRepo from "./repo/users.ts";
 export * as profilesRepo from "./repo/profiles.ts";
 export { audit } from "./repo/audit.ts";
+export * as jobsRepo from "./repo/jobs.ts";

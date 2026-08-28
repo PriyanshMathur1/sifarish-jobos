@@ -1,0 +1,55 @@
+{
+  "jobs": [
+    {
+      "absolute_url": "https://job-boards.greenhouse.io/postman/jobs/7762097003",
+      "internal_job_id": 5776491003,
+      "location": { "name": "Dubai, Dubai, United Arab Emirates" },
+      "metadata": null,
+      "id": 7762097003,
+      "updated_at": "2026-08-17T18:15:55-04:00",
+      "requisition_id": "2055",
+      "title": "Account Development Representative",
+      "company_name": "Postman",
+      "first_published": "2026-07-15T10:28:32-04:00",
+      "language": "en",
+      "content": "&lt;div class=\"content-intro\"&gt;&lt;h2&gt;&lt;strong&gt;Who Are We?&lt;/strong&gt;&lt;/h2&gt;\n&lt;p&gt;Postman is the world&#39;s leading API platform, used by more than 45 million+ developers.&lt;/p&gt;&lt;/div&gt;",
+      "departments": [
+        { "id": 4045833003, "name": "Sales", "child_ids": [], "parent_id": 4047977003 }
+      ],
+      "offices": [
+        {
+          "id": 4101882003,
+          "name": "Remote, Dubai",
+          "location": "Dubai, Dubai, United Arab Emirates",
+          "child_ids": [],
+          "parent_id": 4101881003
+        }
+      ]
+    },
+    {
+      "absolute_url": "https://job-boards.greenhouse.io/postman/jobs/8000000001",
+      "internal_job_id": 5800000001,
+      "location": { "name": "Bengaluru, Karnataka, India" },
+      "metadata": null,
+      "id": 8000000001,
+      "updated_at": "2026-08-20T04:10:00-04:00",
+      "requisition_id": "2101",
+      "title": "Senior Product Manager, Growth",
+      "company_name": "Postman",
+      "first_published": "2026-08-18T02:00:00-04:00",
+      "language": "en",
+      "content": "&lt;p&gt;Drive growth initiatives for the API platform. Requires 5+ years in product management, SQL and experimentation experience.&lt;/p&gt;",
+      "departments": [{ "id": 4045833004, "name": "Product", "child_ids": [], "parent_id": null }],
+      "offices": [
+        {
+          "id": 4101882004,
+          "name": "Bengaluru",
+          "location": "Bengaluru, Karnataka, India",
+          "child_ids": [],
+          "parent_id": null
+        }
+      ]
+    }
+  ],
+  "meta": { "total": 2 }
+}

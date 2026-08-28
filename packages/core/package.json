@@ -11,14 +11,19 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "pg": "^8.13.1",
+    "@jobos/db": "workspace:*",
+    "cron-parser": "^4.9.0",
+    "drizzle-orm": "^0.38.3",
+    "pg": "^8.23.0",
     "pg-boss": "^10.1.5",
     "pino": "^9.5.0",
+    "sanitize-html": "^2.17.7",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
-    "@types/pg": "^8.11.10",
+    "@types/pg": "^8.23.1",
+    "@types/sanitize-html": "^2.16.1",
     "typescript": "^5.7.2"
   }
 }

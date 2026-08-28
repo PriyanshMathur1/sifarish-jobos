@@ -1,8 +1,14 @@
+import { config as loadDotenv } from "dotenv";
+import { fileURLToPath } from "node:url";
+loadDotenv({ path: fileURLToPath(new URL("../../../.env", import.meta.url)) });
+
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { getDb, closeDb } from "./client.ts";
 import * as schema from "./schema/index.ts";
-import { users, profiles, candidatePreferences } from "./schema/index.ts";
+import { users, profiles, candidatePreferences, companies, jobs } from "./schema/index.ts";
+import { COMPANY_SEEDS, JOB_SEEDS } from "./seed-data.ts";
+import { createHash } from "node:crypto";
 
 /**
  * Development seed (PRD §129): a dev user with a realistic profile so the
@@ -57,6 +63,65 @@ async function seedInto(db: SeedDb): Promise<void> {
       strictness: { locations: "preferred", industriesPreferred: "preferred" },
     })
     .onConflictDoNothing({ target: candidatePreferences.userId });
+
+  // Company registry (ticket 1.11) — idempotent on (ats_provider, ats_identifier).
+  const companyIdByName = new Map<string, string>();
+  for (const c of COMPANY_SEEDS) {
+    const [row] = await db
+      .insert(companies)
+      .values({
+        name: c.name,
+        normalizedName: c.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, " ")
+          .trim(),
+        domain: c.domain,
+        industry: c.industry,
+        atsProvider: c.atsProvider,
+        atsIdentifier: c.atsIdentifier,
+        careersUrl: c.careersUrl ?? null,
+        detectionConfidence: "high",
+      })
+      .onConflictDoUpdate({
+        target: [companies.atsProvider, companies.atsIdentifier],
+        set: { name: c.name, domain: c.domain, industry: c.industry },
+      })
+      .returning({ id: companies.id, name: companies.name });
+    if (row) companyIdByName.set(row.name, row.id);
+  }
+
+  // Offline dev jobs (PRD §129) — clearly marked; a live refresh supersedes.
+  for (const j of JOB_SEEDS) {
+    const companyId = companyIdByName.get(j.companyName);
+    if (!companyId) continue;
+    const descriptionText = j.descriptionHtml
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    await db
+      .insert(jobs)
+      .values({
+        companyId,
+        externalId: j.externalId,
+        sourceProvider: "seed",
+        title: j.title,
+        normalizedTitle: j.title,
+        seniority: "mid",
+        descriptionHtml: j.descriptionHtml,
+        descriptionText,
+        locations: j.locations,
+        remoteType: j.remoteType,
+        marketEligibility: j.marketEligibility,
+        employmentType: j.employmentType,
+        applyUrl: j.applyUrl,
+        sourceUrl: j.applyUrl,
+        sourcePostedAt: j.sourcePostedAt ? new Date(j.sourcePostedAt) : null,
+        contentHash: createHash("sha256")
+          .update(j.externalId + j.title)
+          .digest("hex"),
+      })
+      .onConflictDoNothing();
+  }
 }
 
 const invokedDirectly = process.argv[1]?.endsWith("seed.ts");
