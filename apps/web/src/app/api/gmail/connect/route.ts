@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
-import { loadConfig } from "@jobos/core";
+import { loadConfig } from "@sifarish/core";
 import { buildGoogleAuthUrl, gmailScopes } from "@/lib/gmail";
 
 export async function GET() {

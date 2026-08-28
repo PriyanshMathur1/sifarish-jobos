@@ -1,7 +1,7 @@
 import parser from "cron-parser";
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
-import type { Db } from "@jobos/db";
-import { schema } from "@jobos/db";
+import type { Db } from "@sifarish/db";
+import { schema } from "@sifarish/db";
 import type { Queue } from "../queue/queue.ts";
 import { QUEUES } from "../queue/queue.ts";
 import { logger } from "../logger.ts";

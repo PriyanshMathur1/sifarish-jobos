@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { z } from "zod";
 import { desc, eq, and, isNull, inArray, sql } from "drizzle-orm";
-import { getDb, schema } from "@jobos/db";
-import { prepareOutreach } from "@jobos/core";
+import { getDb, schema } from "@sifarish/db";
+import { prepareOutreach } from "@sifarish/core";
 import { requireUser } from "@/lib/session";
 import { approveAction } from "../actions";
 

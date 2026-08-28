@@ -1,5 +1,5 @@
 /**
- * Freshness display (PRD §34): source-stated "Posted" vs JobOS-observed
+ * Freshness display (PRD §34): source-stated "Posted" vs Sifarish-observed
  * "Discovered". Never conflated, never fabricated.
  */
 export function freshnessLabel(sourcePostedAt: Date | null, firstSeenAt: Date): string {

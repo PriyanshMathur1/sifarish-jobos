@@ -9,7 +9,7 @@ test("health endpoint reports db up", async ({ request }) => {
 test("unauthenticated user is sent to sign-in", async ({ page }) => {
   await page.goto("/jobs");
   await expect(page).toHaveURL(/\/signin/);
-  await expect(page.getByRole("heading", { name: "JobOS" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sifarish" })).toBeVisible();
 });
 
 test("cron endpoint rejects a bad secret", async ({ request }) => {

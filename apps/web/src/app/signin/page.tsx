@@ -12,7 +12,7 @@ export default async function SignInPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-8 px-6">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">JobOS</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Sifarish</h1>
         <p className="mt-2 text-muted">
           Real openings from company career sources. Real contacts. Outreach you approve.
         </p>

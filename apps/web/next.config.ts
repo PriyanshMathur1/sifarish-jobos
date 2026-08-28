@@ -13,7 +13,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@jobos/core", "@jobos/db"],
+  transpilePackages: ["@sifarish/core", "@sifarish/db"],
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

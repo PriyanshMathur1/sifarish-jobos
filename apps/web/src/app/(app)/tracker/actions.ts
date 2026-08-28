@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/session";
-import { getDb, trackerRepo } from "@jobos/db";
-import { APPLICATION_STATUSES } from "@jobos/db/repo/tracker";
+import { getDb, trackerRepo } from "@sifarish/db";
+import { APPLICATION_STATUSES } from "@sifarish/db/repo/tracker";
 
 export async function markAppliedAction(jobId: string): Promise<void> {
   const { userId } = await requireUser();

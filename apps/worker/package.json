@@ -1,5 +1,5 @@
 {
-  "name": "@jobos/worker",
+  "name": "@sifarish/worker",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -8,8 +8,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@jobos/core": "workspace:*",
-    "@jobos/db": "workspace:*",
+    "@sifarish/core": "workspace:*",
+    "@sifarish/db": "workspace:*",
     "dotenv": "^17.4.2"
   },
   "devDependencies": {

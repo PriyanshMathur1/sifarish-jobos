@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/session";
-import { getDb, contactsRepo, schema, audit } from "@jobos/db";
+import { getDb, contactsRepo, schema, audit } from "@sifarish/db";
 import {
   EmailValidator,
   emailHash,
@@ -11,7 +11,7 @@ import {
   loadConfig,
   discoverContacts,
   SafeFetcher,
-} from "@jobos/core";
+} from "@sifarish/core";
 import { ilike, sql } from "drizzle-orm";
 import { rateLimit } from "@/lib/rate-limit";
 

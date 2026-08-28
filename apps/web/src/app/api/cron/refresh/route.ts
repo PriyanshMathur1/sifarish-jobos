@@ -7,9 +7,9 @@ import {
   QUEUES,
   registerHandlers,
   recoverMissedRun,
-} from "@jobos/core";
-import { completeFinishedRuns } from "@jobos/core/ingestion/orchestrator";
-import { getDb } from "@jobos/db";
+} from "@sifarish/core";
+import { completeFinishedRuns } from "@sifarish/core/ingestion/orchestrator";
+import { getDb } from "@sifarish/db";
 
 export const maxDuration = 300;
 

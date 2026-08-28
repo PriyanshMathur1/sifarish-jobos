@@ -1,5 +1,5 @@
 {
-  "name": "@jobos/web",
+  "name": "@sifarish/web",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@auth/drizzle-adapter": "1.7.4",
-    "@jobos/core": "workspace:*",
-    "@jobos/db": "workspace:*",
+    "@sifarish/core": "workspace:*",
+    "@sifarish/db": "workspace:*",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.38.3",
     "next": "^15.1.3",

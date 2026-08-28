@@ -1,5 +1,5 @@
 import { eq, and, isNull } from "drizzle-orm";
-import { getDb, schema } from "@jobos/db";
+import { getDb, schema } from "@sifarish/db";
 import {
   RealGmailClient,
   FakeGmailClient,
@@ -8,7 +8,7 @@ import {
   loadConfig,
   type GmailClient,
   type TokenBundle,
-} from "@jobos/core";
+} from "@sifarish/core";
 
 /**
  * Gmail account plumbing (grill G5): tokens live encrypted in

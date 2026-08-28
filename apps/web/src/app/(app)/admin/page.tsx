@@ -1,5 +1,5 @@
 import { desc, sql } from "drizzle-orm";
-import { getDb, schema, jobsRepo } from "@jobos/db";
+import { getDb, schema, jobsRepo } from "@sifarish/db";
 import { requireAdmin } from "@/lib/session";
 import { runGlobalRefresh, refreshOneCompany, toggleCompanyStatus } from "./actions";
 

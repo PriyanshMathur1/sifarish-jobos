@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { signOut } from "@/auth";
 import { requireUser } from "@/lib/session";
-import { getDb, profilesRepo, usersRepo, audit, schema } from "@jobos/db";
+import { getDb, profilesRepo, usersRepo, audit, schema } from "@sifarish/db";
 import { eq } from "drizzle-orm";
 
 const csv = (s: FormDataEntryValue | null) =>

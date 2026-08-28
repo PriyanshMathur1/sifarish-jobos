@@ -1,5 +1,5 @@
 {
-  "name": "@jobos/core",
+  "name": "@sifarish/core",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@jobos/db": "workspace:*",
+    "@sifarish/db": "workspace:*",
     "cron-parser": "^4.9.0",
     "drizzle-orm": "^0.38.3",
     "pg": "^8.23.0",

@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { signInAs, deleteUser } from "./helpers";
 
-const EMAIL = "e2e-shell@jobos.local";
+const EMAIL = "e2e-shell@sifarish.local";
 
 test.afterAll(async () => {
   await deleteUser(EMAIL);
@@ -27,7 +27,7 @@ test("profile edits persist and account deletion signs out (tickets 0.4, 0.7)", 
   context,
   page,
 }) => {
-  await signInAs(context, "e2e-delete@jobos.local");
+  await signInAs(context, "e2e-delete@sifarish.local");
 
   await page.goto("/profile");
   await page.getByLabel("Current / most recent title").fill("Growth PM");

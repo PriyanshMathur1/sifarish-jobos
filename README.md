@@ -1,4 +1,4 @@
-# JobOS
+# Sifarish
 
 Your job search, one place: real openings from company career sources, real
 professional contacts, and customised outreach you approve — no generative AI,
@@ -10,7 +10,7 @@ Primary user: Priyansh. Market: India (`MARKET_COUNTRIES=IN`). Benchmark: jobdul
 ## Quick start
 
 ```bash
-git clone <repo> && cd jobos
+git clone <repo> && cd sifarish
 cp .env.example .env           # fill AUTH_SECRET + CRON_SECRET
 docker compose up -d db        # or any local Postgres 16
 pnpm install

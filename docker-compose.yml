@@ -2,9 +2,9 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_USER: jobos
-      POSTGRES_PASSWORD: jobos
-      POSTGRES_DB: jobos
+      POSTGRES_USER: sifarish
+      POSTGRES_PASSWORD: sifarish
+      POSTGRES_DB: sifarish
     ports: ["5432:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
 volumes:

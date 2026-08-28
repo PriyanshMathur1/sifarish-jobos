@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
-import { getDb, schema } from "@jobos/db";
+import { getDb, schema } from "@sifarish/db";
 import { requireUser } from "@/lib/session";
 import { getGmailStatus } from "@/lib/gmail";
 import { EmptyState } from "@/components/empty-state";
@@ -96,7 +96,7 @@ export default async function OutreachPage({
       {messages.length === 0 ? (
         <EmptyState
           title="No outreach yet"
-          body="Pick a job, pick a contact, pick a template — JobOS fills the variables, you edit and approve. The message lands in your Gmail drafts."
+          body="Pick a job, pick a contact, pick a template — Sifarish fills the variables, you edit and approve. The message lands in your Gmail drafts."
           action={
             <Link
               href="/outreach/new"

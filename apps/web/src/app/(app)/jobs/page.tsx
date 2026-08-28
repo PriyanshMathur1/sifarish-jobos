@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getDb, jobsRepo } from "@jobos/db";
+import { getDb, jobsRepo } from "@sifarish/db";
 import { requireUser } from "@/lib/session";
 import { JobCard } from "@/components/job-card";
 import { EmptyState } from "@/components/empty-state";

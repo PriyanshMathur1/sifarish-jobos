@@ -135,7 +135,7 @@ export class SafeFetcher {
       burst: opts.burst ?? 4,
       breakerThreshold: opts.breakerThreshold ?? 5,
       breakerCooldownMs: opts.breakerCooldownMs ?? 10 * 60 * 1000,
-      userAgent: opts.userAgent ?? "JobOSBot/0.1 (+https://jobs.priyanshmathur.com)",
+      userAgent: opts.userAgent ?? "SifarishBot/0.1 (+https://sifarish.priyanshmathur.com)",
     };
   }
 

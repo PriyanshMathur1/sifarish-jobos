@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/session";
-import { getDb, jobsRepo } from "@jobos/db";
+import { getDb, jobsRepo } from "@sifarish/db";
 
 const idSchema = z.string().uuid();
 

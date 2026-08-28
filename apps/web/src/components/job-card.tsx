@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { jobsRepo } from "@jobos/db";
+import type { jobsRepo } from "@sifarish/db";
 import { freshnessLabel } from "@/lib/freshness";
 import { saveJob, unsaveJob, hideJob } from "@/app/(app)/jobs/actions";
 

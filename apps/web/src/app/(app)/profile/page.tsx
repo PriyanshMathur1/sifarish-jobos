@@ -1,4 +1,4 @@
-import { getDb, profilesRepo } from "@jobos/db";
+import { getDb, profilesRepo } from "@sifarish/db";
 import { requireUser } from "@/lib/session";
 import { getGmailStatus } from "@/lib/gmail";
 import { updateProfile, deleteAccount, disconnectGmail } from "./actions";
@@ -71,7 +71,7 @@ export default async function ProfilePage() {
           <div className="mt-2 text-sm text-muted">
             <p>
               Connect Gmail so approved outreach becomes a draft in your own mailbox (scope: compose
-              only — JobOS cannot read your email).
+              only — Sifarish cannot read your email).
             </p>
             <a
               href="/api/gmail/connect"

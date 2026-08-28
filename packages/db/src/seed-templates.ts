@@ -1,6 +1,6 @@
 /**
  * Built-in outreach templates (PRD §77) — mirrored from
- * @jobos/core/outreach/template-renderer BUILTIN_TEMPLATES (db cannot import
+ * @sifarish/core/outreach/template-renderer BUILTIN_TEMPLATES (db cannot import
  * core without a dependency cycle; the contract test in core keeps the two
  * in sync by kind).
  */

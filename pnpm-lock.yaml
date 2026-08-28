@@ -39,10 +39,10 @@ importers:
       '@auth/drizzle-adapter':
         specifier: 1.7.4
         version: 1.7.4(nodemailer@6.10.1)
-      '@jobos/core':
+      '@sifarish/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@jobos/db':
+      '@sifarish/db':
         specifier: workspace:*
         version: link:../../packages/db
       dotenv:
@@ -97,10 +97,10 @@ importers:
 
   apps/worker:
     dependencies:
-      '@jobos/core':
+      '@sifarish/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@jobos/db':
+      '@sifarish/db':
         specifier: workspace:*
         version: link:../../packages/db
       dotenv:
@@ -119,7 +119,7 @@ importers:
 
   packages/core:
     dependencies:
-      '@jobos/db':
+      '@sifarish/db':
         specifier: workspace:*
         version: link:../db
       cron-parser:

@@ -64,7 +64,7 @@ export function enrichJob(n: NormalizedJob): EnrichedJob {
   const t = normalizeTitle(n.title);
 
   // Change detection hash over source-derived content only (PRD §27) —
-  // JobOS-observed timestamps must not churn versions.
+  // Sifarish-observed timestamps must not churn versions.
   const contentHash = createHash("sha256")
     .update(
       JSON.stringify({

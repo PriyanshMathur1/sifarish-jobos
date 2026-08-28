@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@jobos/db";
-import { logger } from "@jobos/core";
+import { getDb } from "@sifarish/db";
+import { logger } from "@sifarish/core";
 import { sql } from "drizzle-orm";
 
 export async function GET() {

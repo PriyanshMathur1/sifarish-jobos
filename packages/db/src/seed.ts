@@ -33,7 +33,7 @@ type SeedDb = ReturnType<typeof getDb>;
 async function seedInto(db: SeedDb): Promise<void> {
   const [dev] = await db
     .insert(users)
-    .values({ email: "dev@jobos.local", name: "Dev User", role: "admin" })
+    .values({ email: "dev@sifarish.local", name: "Dev User", role: "admin" })
     .onConflictDoUpdate({ target: users.email, set: { name: "Dev User", role: "admin" } })
     .returning();
   if (!dev) throw new Error("seed: failed to upsert dev user");

@@ -3,7 +3,7 @@ import pg from "pg";
 import { PgBossQueue } from "./pgboss.ts";
 
 const TEST_URL =
-  process.env.TEST_DATABASE_URL ?? "postgres://jobos:jobos@localhost:5432/jobos_test";
+  process.env.TEST_DATABASE_URL ?? "postgres://sifarish:sifarish@localhost:5432/sifarish_test";
 
 describe("PgBossQueue", () => {
   let queue: PgBossQueue;

@@ -3,8 +3,8 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/session";
-import { getDb } from "@jobos/db";
-import { approveOutreach, loadConfig } from "@jobos/core";
+import { getDb } from "@sifarish/db";
+import { approveOutreach, loadConfig } from "@sifarish/core";
 import { getGmailClientForUser } from "@/lib/gmail";
 import { rateLimit } from "@/lib/rate-limit";
 

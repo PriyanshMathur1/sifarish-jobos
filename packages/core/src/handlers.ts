@@ -1,4 +1,4 @@
-import { getDb } from "@jobos/db";
+import { getDb } from "@sifarish/db";
 import type { AppConfig } from "./config.ts";
 import type { JobHandler, Queue } from "./queue/queue.ts";
 import { QUEUES } from "./queue/queue.ts";

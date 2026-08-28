@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { signInAs, deleteUser } from "./helpers";
 
-const EMAIL = "e2e-jobs@jobos.local";
+const EMAIL = "e2e-jobs@sifarish.local";
 
 test.afterAll(async () => {
   await deleteUser(EMAIL);

@@ -4,7 +4,7 @@ import { runMigrations } from "./migrate.ts";
 import { seed } from "./seed.ts";
 
 const TEST_URL =
-  process.env.TEST_DATABASE_URL ?? "postgres://jobos:jobos@localhost:5432/jobos_test";
+  process.env.TEST_DATABASE_URL ?? "postgres://sifarish:sifarish@localhost:5432/sifarish_test";
 
 async function resetDb(): Promise<void> {
   const pool = new pg.Pool({ connectionString: TEST_URL, max: 1 });
@@ -26,6 +26,6 @@ describe("migrations", () => {
       "select u.email, p.current_title from users u join profiles p on p.user_id = u.id",
     );
     await pool.end();
-    expect(rows).toEqual([{ email: "dev@jobos.local", current_title: "Product Manager" }]);
+    expect(rows).toEqual([{ email: "dev@sifarish.local", current_title: "Product Manager" }]);
   });
 });

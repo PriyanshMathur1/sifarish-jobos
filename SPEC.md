@@ -1,7 +1,7 @@
-# JobOS — Engineering Specification
+# Sifarish — Engineering Specification
 
 Version: 1.0 (post-grill, locked)
-Source of truth: `PRD v2.0`, amended by grill decisions below. Benchmark product: jobdululu.com ("connect Gmail → pick contacts → send personalized emails to recruiters/founders"). JobOS differentiator: the outreach is driven by a live first-party **job graph**, not a static contact database.
+Source of truth: `PRD v2.0`, amended by grill decisions below. Benchmark product: jobdululu.com ("connect Gmail → pick contacts → send personalized emails to recruiters/founders"). Sifarish differentiator: the outreach is driven by a live first-party **job graph**, not a static contact database.
 
 Design language: deep-module vocabulary — **module / interface / implementation / seam / adapter / depth**.
 
@@ -17,7 +17,7 @@ Design language: deep-module vocabulary — **module / interface / implementatio
 | G4  | **Contacts**: manual import is first-class (paste/CSV: name, company, title); auto-discovery from public pages is best-effort enhancement. No LinkedIn scraping, no paid APIs. Real leverage = email-pattern engine + validation.                                                              |
 | G5  | **Send mechanism**: Gmail API **drafts by default** (user sends from Gmail); direct send behind `OUTREACH_DIRECT_SEND` flag with daily cap (default 25), recipient dedup, per-send approval. No bulk auto-send, ever (PRD §80/§157 held).                                                      |
 | G6  | **Customisation = deterministic**: templates + smart variables (`{{relevant_skill}}` = job skills ∩ profile skills). No generative AI (PRD §6).                                                                                                                                                |
-| G7  | **Domain**: `jobs.priyanshmathur.com` (apex stays the Cloudflare Pages portfolio; one CNAME at Namecheap).                                                                                                                                                                                     |
+| G7  | **Domain**: `sifarish.priyanshmathur.com` (apex stays the Cloudflare Pages portfolio; one CNAME at Namecheap).                                                                                                                                                                                     |
 | G8  | **Runtime host**: Vercel Hobby + Neon Postgres, designed-for now, deployed later. Worker is **dual-mode**: long-lived pg-boss process locally; batch-drain endpoint invoked by 2 Vercel cron jobs (3:00 & 15:00 IST) in prod. Deploy artifacts + wizard shipped, account setup is a follow-up. |
 | G9  | Auth: Google-only in prod until a mailer is wired; magic link works in dev (logged links).                                                                                                                                                                                                     |
 | G10 | Refresh 3:00/15:00 `Asia/Kolkata` via `JOB_REFRESH_SCHEDULE`; never hardcoded.                                                                                                                                                                                                                 |

@@ -2,14 +2,14 @@ import { beforeAll, describe, expect, it } from "vitest";
 import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { eq } from "drizzle-orm";
-import * as schema from "@jobos/db/schema/index";
-import { runMigrations } from "@jobos/db/migrate";
+import * as schema from "@sifarish/db/schema/index";
+import { runMigrations } from "@sifarish/db/migrate";
 import { prepareOutreach, approveOutreach, emailHash } from "./outreach.ts";
 import { FakeGmailClient } from "./gmail.ts";
 import { BUILTIN_TEMPLATES } from "./template-renderer.ts";
 
 const TEST_URL =
-  process.env.TEST_DATABASE_URL ?? "postgres://jobos:jobos@localhost:5432/jobos_test";
+  process.env.TEST_DATABASE_URL ?? "postgres://sifarish:sifarish@localhost:5432/sifarish_test";
 
 let db: ReturnType<typeof drizzle<typeof schema>>;
 let userId: string;
@@ -25,7 +25,7 @@ beforeAll(async () => {
   await runMigrations(TEST_URL);
   db = drizzle(new pg.Pool({ connectionString: TEST_URL, max: 4 }), { schema });
 
-  const [user] = await db.insert(schema.users).values({ email: "sender@jobos.local" }).returning();
+  const [user] = await db.insert(schema.users).values({ email: "sender@sifarish.local" }).returning();
   userId = user!.id;
   await db.insert(schema.profiles).values({
     userId,
@@ -156,7 +156,7 @@ describe("approveOutreach", () => {
   it("the recipient is derived server-side from the owner-scoped contact — a foreign contactId is refused", async () => {
     const [stranger] = await db
       .insert(schema.users)
-      .values({ email: "other@jobos.local" })
+      .values({ email: "other@sifarish.local" })
       .returning();
     const [foreign] = await db
       .insert(schema.contacts)

@@ -9,7 +9,7 @@ import {
   QUEUES,
   registerHandlers,
   recoverMissedRun,
-} from "@jobos/core";
+} from "@sifarish/core";
 
 /**
  * Long-lived worker (local/VPS mode). The same handlers serve the

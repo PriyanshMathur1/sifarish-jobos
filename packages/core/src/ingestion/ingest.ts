@@ -1,6 +1,6 @@
 import { and, eq, notInArray, sql } from "drizzle-orm";
-import type { Db } from "@jobos/db";
-import { schema } from "@jobos/db";
+import type { Db } from "@sifarish/db";
+import { schema } from "@sifarish/db";
 import type { SafeFetcher } from "../fetch/safe-fetcher.ts";
 import { getProvider } from "../providers/registry.ts";
 import type { ProviderId } from "../providers/types.ts";

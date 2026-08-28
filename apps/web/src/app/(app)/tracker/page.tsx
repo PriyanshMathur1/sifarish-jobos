@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { getDb, trackerRepo } from "@jobos/db";
-import { APPLICATION_STATUSES } from "@jobos/db/repo/tracker";
+import { getDb, trackerRepo } from "@sifarish/db";
+import { APPLICATION_STATUSES } from "@sifarish/db/repo/tracker";
 import { requireUser } from "@/lib/session";
 import { EmptyState } from "@/components/empty-state";
 import {

@@ -13,4 +13,4 @@ Contact discovery (flagged, CONTACT_DISCOVERY): schema.org Person JSON-LD from c
 
 Seed registry: 18 companies (see packages/db/src/seed-data.ts), India-weighted, admin-editable. Market filter (MARKET_COUNTRIES=IN) applies at ingest: jobs located in India, or remote-and-India-eligible (APAC counts), are kept; unstated-region remote is kept but badged "eligibility unverified"; the rest are counted and discarded.
 
-Freshness honesty (PRD §34): "Posted" only when the source stated a date; otherwise "Discovered" from JobOS's own first observation. Never fabricated.
+Freshness honesty (PRD §34): "Posted" only when the source stated a date; otherwise "Discovered" from Sifarish's own first observation. Never fabricated.

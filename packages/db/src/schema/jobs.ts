@@ -14,7 +14,7 @@ import {
 import { id, createdAt, updatedAt } from "./helpers.ts";
 import { users } from "./auth.ts";
 
-/** Job graph (SPEC §3). Provenance-first: source facts vs JobOS observations
+/** Job graph (SPEC §3). Provenance-first: source facts vs Sifarish observations
  *  are separate columns and never conflated (PRD §34). */
 
 const tsvector = customType<{ data: string }>({
@@ -92,7 +92,7 @@ export const jobs = pgTable(
     sourcePostedAt: timestamp("source_posted_at", { withTimezone: true }),
     sourceUpdatedAt: timestamp("source_updated_at", { withTimezone: true }),
 
-    /** JobOS observations. */
+    /** Sifarish observations. */
     firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
     lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }).notNull().defaultNow(),

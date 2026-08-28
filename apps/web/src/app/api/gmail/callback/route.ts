@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
-import { loadConfig, encryptToken, logger } from "@jobos/core";
-import { getDb, schema, audit } from "@jobos/db";
+import { loadConfig, encryptToken, logger } from "@sifarish/core";
+import { getDb, schema, audit } from "@sifarish/db";
 
 export async function GET(req: NextRequest) {
   const session = await auth();

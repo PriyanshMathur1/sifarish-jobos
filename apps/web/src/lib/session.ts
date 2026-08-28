@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getDb, usersRepo } from "@jobos/db";
+import { getDb, usersRepo } from "@sifarish/db";
 
 /** The one auth guard — pages/actions never re-implement session checks. */
 export async function requireUser(): Promise<{ userId: string }> {

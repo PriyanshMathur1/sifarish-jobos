@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { and, eq, gte, sql } from "drizzle-orm";
-import type { Db } from "@jobos/db";
-import { schema } from "@jobos/db";
+import type { Db } from "@sifarish/db";
+import { schema } from "@sifarish/db";
 import { type Result, ok, err } from "../result.ts";
 import { renderTemplate, resolveRelevantSkill } from "./template-renderer.ts";
 import type { GmailClient } from "./gmail.ts";

@@ -2,13 +2,13 @@ import { beforeAll, describe, expect, it } from "vitest";
 import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { eq } from "drizzle-orm";
-import * as schema from "@jobos/db/schema/index";
-import { runMigrations } from "@jobos/db/migrate";
+import * as schema from "@sifarish/db/schema/index";
+import { runMigrations } from "@sifarish/db/migrate";
 import type { Queue, EnqueueOptions, JobHandler } from "../queue/queue.ts";
 import { orchestrateRefresh, completeFinishedRuns, findMissedSlot } from "./orchestrator.ts";
 
 const TEST_URL =
-  process.env.TEST_DATABASE_URL ?? "postgres://jobos:jobos@localhost:5432/jobos_test";
+  process.env.TEST_DATABASE_URL ?? "postgres://sifarish:sifarish@localhost:5432/sifarish_test";
 
 /** In-memory Queue test double — records enqueues, dedupes singleton keys. */
 class FakeQueue implements Queue {

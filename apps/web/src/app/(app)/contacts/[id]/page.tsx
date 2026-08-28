@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { getDb, contactsRepo } from "@jobos/db";
-import { EmailValidator, inferEmails } from "@jobos/core";
+import { getDb, contactsRepo } from "@sifarish/db";
+import { EmailValidator, inferEmails } from "@sifarish/core";
 import { requireUser } from "@/lib/session";
 import { StatusBadge } from "@/components/status-badge";
 import { chooseSuggestedEmail, suppressContactAction } from "../actions";

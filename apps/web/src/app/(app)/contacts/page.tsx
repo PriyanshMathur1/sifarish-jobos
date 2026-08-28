@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getDb, contactsRepo } from "@jobos/db";
+import { getDb, contactsRepo } from "@sifarish/db";
 import { requireUser } from "@/lib/session";
 import { EmptyState } from "@/components/empty-state";
 import { addContact, importContacts, discoverFromPage } from "./actions";
@@ -17,7 +17,7 @@ export default async function ContactsPage() {
       <div>
         <h1 className="text-xl font-semibold">Contacts</h1>
         <p className="mt-1 text-sm text-muted">
-          Recruiters and hiring managers you can reach out to. Add people you find yourself — JobOS
+          Recruiters and hiring managers you can reach out to. Add people you find yourself — Sifarish
           suggests probable work emails with honest confidence labels.
         </p>
       </div>
@@ -124,7 +124,7 @@ export default async function ContactsPage() {
       {rows.length === 0 ? (
         <EmptyState
           title="No contacts yet"
-          body="Add a recruiter or hiring manager above. If their company is one JobOS tracks, email suggestions get sharper with every verified address."
+          body="Add a recruiter or hiring manager above. If their company is one Sifarish tracks, email suggestions get sharper with every verified address."
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line bg-white">

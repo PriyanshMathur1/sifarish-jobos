@@ -2,7 +2,7 @@ import type { BrowserContext } from "@playwright/test";
 import pg from "pg";
 import { randomBytes } from "node:crypto";
 
-const DB_URL = process.env.DATABASE_URL ?? "postgres://jobos:jobos@localhost:5432/jobos";
+const DB_URL = process.env.DATABASE_URL ?? "postgres://sifarish:sifarish@localhost:5432/sifarish";
 
 /**
  * E2E sign-in: create a real user + session row and set the session cookie —

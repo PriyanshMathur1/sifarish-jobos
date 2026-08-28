@@ -1,17 +1,17 @@
 {
-  "name": "jobos",
+  "name": "sifarish",
   "private": true,
   "packageManager": "pnpm@10.0.0",
   "scripts": {
-    "dev": "pnpm --filter @jobos/web dev",
-    "worker": "pnpm --filter @jobos/worker start",
+    "dev": "pnpm --filter @sifarish/web dev",
+    "worker": "pnpm --filter @sifarish/worker start",
     "build": "pnpm -r build",
     "lint": "eslint .",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
     "test:integration": "VITEST_MODE=integration vitest run",
-    "db:migrate": "pnpm --filter @jobos/db migrate",
-    "db:seed": "pnpm --filter @jobos/db seed",
+    "db:migrate": "pnpm --filter @sifarish/db migrate",
+    "db:seed": "pnpm --filter @sifarish/db seed",
     "e2e": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

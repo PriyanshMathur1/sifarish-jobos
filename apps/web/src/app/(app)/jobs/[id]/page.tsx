@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { getDb, jobsRepo } from "@jobos/db";
+import { getDb, jobsRepo } from "@sifarish/db";
 import { requireUser } from "@/lib/session";
 import { freshnessLabel } from "@/lib/freshness";
 import Link from "next/link";
@@ -111,7 +111,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
       {job.descriptionHtml ? (
         <div
-          className="prose-jobos max-w-none text-[15px] leading-relaxed [&_a]:text-accent [&_a]:underline [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_p]:mt-3"
+          className="prose-sifarish max-w-none text-[15px] leading-relaxed [&_a]:text-accent [&_a]:underline [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_p]:mt-3"
           // Sanitized once at ingest (SPEC §5); stored HTML is already safe.
           dangerouslySetInnerHTML={{ __html: job.descriptionHtml }}
         />
@@ -123,7 +123,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
       <footer className="mt-8 border-t border-line pt-4 text-xs text-muted">
         <p>
-          Listing v{job.version}, observed by JobOS{" "}
+          Listing v{job.version}, observed by Sifarish{" "}
           {freshnessLabel(null, job.firstSeenAt).toLowerCase()}.
           {job.sourceUrl ? (
             <>

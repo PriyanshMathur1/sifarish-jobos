@@ -6,7 +6,7 @@ import { signInAs, deleteUser, markJobRemoved } from "./helpers";
  * template preview → approved Gmail draft (fake adapter) → tracker.
  * Requires the dev server to run with GMAIL_TEST_FAKE=true (playwright.config).
  */
-const EMAIL = "e2e-outreach@jobos.local";
+const EMAIL = "e2e-outreach@sifarish.local";
 
 test.afterAll(async () => {
   await deleteUser(EMAIL);
