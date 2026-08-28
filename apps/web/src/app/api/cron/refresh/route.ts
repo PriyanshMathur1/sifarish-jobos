@@ -8,9 +8,8 @@ import {
   registerHandlers,
   recoverMissedRun,
 } from "@jobos/core";
-import { completeRun } from "@jobos/core/ingestion/orchestrator";
-import { getDb, schema } from "@jobos/db";
-import { desc, eq } from "drizzle-orm";
+import { completeFinishedRuns } from "@jobos/core/ingestion/orchestrator";
+import { getDb } from "@jobos/db";
 
 export const maxDuration = 300;
 
@@ -46,15 +45,9 @@ export async function POST(req: NextRequest) {
     const orchestrated = await queue.drain(QUEUES.refreshOrchestrate, 2);
     const refreshed = await queue.drain(QUEUES.refreshCompany, 500);
 
-    // Close out any run left RUNNING now that its fan-out is drained.
-    const db = getDb();
-    const running = await db
-      .select({ id: schema.refreshRuns.id })
-      .from(schema.refreshRuns)
-      .where(eq(schema.refreshRuns.status, "RUNNING"))
-      .orderBy(desc(schema.refreshRuns.scheduledAt))
-      .limit(5);
-    for (const r of running) await completeRun(db, r.id);
+    // Close out only runs whose fan-out fully processed (others keep RUNNING).
+    const completed = await completeFinishedRuns(getDb());
+    void completed;
 
     log.info({ orchestrated, refreshed, recovered }, "cron drain complete");
     return NextResponse.json({ ok: true, orchestrated, refreshed, recovered });

@@ -96,7 +96,9 @@ export const genericJsonLdProvider: JobProvider = {
     src: CompanySource,
   ): Promise<Result<RawJob[], ProviderError>> {
     if (!src.careersUrl) return err({ kind: "notFound" });
-    const res = await fetcher.fetch(src.careersUrl);
+    // HTML page crawl — robots directives are honoured here (PRD §23),
+    // unlike the first-party JSON board APIs which are meant to be fetched.
+    const res = await fetcher.fetch(src.careersUrl, { respectRobots: true });
     if (!res.ok) return err({ kind: "unreachable", detail: JSON.stringify(res.error) });
     if (res.value.status !== 200)
       return err({ kind: "unreachable", detail: `http ${res.value.status}` });

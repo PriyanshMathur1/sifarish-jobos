@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { loadConfig, logger, PgBossQueue, QUEUES, registerHandlers } from "@jobos/core";
-import { orchestrateRefresh, completeRun } from "@jobos/core/ingestion/orchestrator";
+import { orchestrateRefresh, completeFinishedRuns } from "@jobos/core/ingestion/orchestrator";
 import { getDb, schema, audit } from "@jobos/db";
 import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
@@ -32,7 +32,7 @@ export async function runGlobalRefresh(): Promise<void> {
   await withQueue(async (queue) => {
     const { runId } = await orchestrateRefresh(db, queue, "manual");
     const refreshed = await queue.drain(QUEUES.refreshCompany, 500);
-    await completeRun(db, runId);
+    await completeFinishedRuns(db);
     logger.info({ runId, refreshed }, "manual global refresh complete");
   });
   revalidatePath("/admin");

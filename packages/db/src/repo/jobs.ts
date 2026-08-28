@@ -4,8 +4,13 @@ import { companies, jobs, userJobEvents } from "../schema/index.ts";
 
 /**
  * Jobs repository — search (Postgres FTS + trigram typo fallback), detail,
- * and per-user event recording. User-facing reads exclude REMOVED jobs and
- * jobs the user has hidden.
+ * and per-user event recording.
+ *
+ * Visibility rules: LIST reads exclude REMOVED jobs and jobs the user has
+ * hidden (a later SAVE un-hides — deliberate: saving signals renewed
+ * interest). DETAIL reads stay accessible by direct URL for any status —
+ * candidates must be able to revisit removed/hidden listings (PRD §32/§85);
+ * the page badges the status honestly.
  */
 
 export interface JobSearchFilters {
@@ -13,6 +18,7 @@ export interface JobSearchFilters {
   remote?: "remote" | "hybrid" | "onsite";
   market?: "IN_CONFIRMED" | "REMOTE_UNVERIFIED";
   companyId?: string;
+  employmentType?: string;
   freshDays?: number;
   includeHidden?: boolean;
   savedOnly?: boolean;
@@ -42,15 +48,13 @@ const hiddenJobIds = (userId: string) =>
                        where u.user_id = e.user_id and u.job_id = e.job_id
                        and u.type = 'SAVE' and u.created_at > e.created_at))`;
 
+/** Jobs whose LATEST save/unsave event is a SAVE (ties broken by event id, which is time-ordered UUIDv7). */
 const savedJobIds = (userId: string) =>
-  sql`(select distinct on (job_id) job_id from (
-        select job_id, type, created_at from user_job_events
+  sql`(select job_id from (
+        select distinct on (job_id) job_id, type from user_job_events
         where user_id = ${userId} and type in ('SAVE','UNSAVE')
-        order by job_id, created_at desc
-      ) latest where latest.type = 'SAVE'
-        and latest.created_at = (select max(created_at) from user_job_events x
-                                 where x.user_id = ${userId} and x.job_id = latest.job_id
-                                 and x.type in ('SAVE','UNSAVE')))`;
+        order by job_id, created_at desc, id desc
+      ) latest where latest.type = 'SAVE')`;
 
 export async function searchJobs(
   db: Db,
@@ -64,6 +68,7 @@ export async function searchJobs(
   if (f.remote) conds.push(eq(jobs.remoteType, f.remote));
   if (f.market) conds.push(eq(jobs.marketEligibility, f.market));
   if (f.companyId) conds.push(eq(jobs.companyId, f.companyId));
+  if (f.employmentType) conds.push(ilike(jobs.employmentType, `%${f.employmentType}%`));
   if (f.freshDays) {
     conds.push(gte(jobs.firstSeenAt, sql`now() - make_interval(days => ${f.freshDays})`));
   }
@@ -147,6 +152,21 @@ export async function recordJobEvent(
   reason?: string,
 ): Promise<void> {
   await db.insert(userJobEvents).values({ userId, jobId, type, reason: reason ?? null });
+}
+
+/**
+ * OPEN is recorded at most once per (user, job) per hour — server-component
+ * renders re-fire on every revalidation and must not inflate counts.
+ */
+export async function recordOpenOnce(db: Db, userId: string, jobId: string): Promise<void> {
+  await db.execute(sql`
+    insert into user_job_events (id, user_id, job_id, type)
+    select gen_random_uuid(), ${userId}, ${jobId}, 'OPEN'
+    where not exists (
+      select 1 from user_job_events
+      where user_id = ${userId} and job_id = ${jobId} and type = 'OPEN'
+      and created_at > now() - interval '1 hour'
+    )`);
 }
 
 export async function listCompanies(db: Db) {

@@ -33,9 +33,11 @@ export function registerHandlers(
     }
   };
 
-  attach(QUEUES.refreshOrchestrate, async (_payload, ctx) => {
-    logger.info({ jobId: ctx.jobId }, "refresh orchestrate tick");
-    await orchestrateRefresh(db, queue, "cron");
+  attach<{ recovery?: boolean; slot?: string }>(QUEUES.refreshOrchestrate, async (payload, ctx) => {
+    const trigger = payload.recovery ? "recovery" : "cron";
+    const scheduledFor = payload.slot ? new Date(payload.slot) : new Date();
+    logger.info({ jobId: ctx.jobId, trigger }, "refresh orchestrate tick");
+    await orchestrateRefresh(db, queue, trigger, scheduledFor);
   });
 
   attach<{ companyId: string; runId: string | null }>(

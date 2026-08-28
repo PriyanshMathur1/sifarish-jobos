@@ -12,6 +12,7 @@ import {
   customType,
 } from "drizzle-orm/pg-core";
 import { id, createdAt, updatedAt } from "./helpers.ts";
+import { users } from "./auth.ts";
 
 /** Job graph (SPEC §3). Provenance-first: source facts vs JobOS observations
  *  are separate columns and never conflated (PRD §34). */
@@ -41,6 +42,8 @@ export const companies = pgTable(
       .notNull()
       .default("ACTIVE"),
     detectionConfidence: text("detection_confidence", { enum: ["high", "medium", "low"] }),
+    /** Consecutive failed checks — persistent circuit-break input (PRD §97). */
+    consecutiveFailures: integer("consecutive_failures").notNull().default(0),
     lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
     lastSuccessfulCheckAt: timestamp("last_successful_check_at", { withTimezone: true }),
     createdAt: createdAt(),
@@ -163,6 +166,7 @@ export const refreshRuns = pgTable("refresh_runs", {
   trigger: text("trigger", { enum: ["cron", "recovery", "manual"] })
     .notNull()
     .default("cron"),
+  companiesTotal: integer("companies_total").notNull().default(0),
   companiesProcessed: integer("companies_processed").notNull().default(0),
   jobsNew: integer("jobs_new").notNull().default(0),
   jobsUpdated: integer("jobs_updated").notNull().default(0),
@@ -190,7 +194,9 @@ export const userJobEvents = pgTable(
   "user_job_events",
   {
     id: id(),
-    userId: uuid("user_id").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     jobId: uuid("job_id")
       .notNull()
       .references(() => jobs.id, { onDelete: "cascade" }),

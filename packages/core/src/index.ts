@@ -17,7 +17,7 @@ export {
   type FetchOk,
 } from "./fetch/safe-fetcher.ts";
 export { refreshCompany, type RefreshOutcome, type IngestDeps } from "./ingestion/ingest.ts";
-export { orchestrateRefresh, completeRun, findMissedSlot } from "./ingestion/orchestrator.ts";
+export { orchestrateRefresh, completeFinishedRuns, findMissedSlot } from "./ingestion/orchestrator.ts";
 export { classifyMarket, type MarketEligibility } from "./market/market-filter.ts";
 export { detectProvider, getProvider, allProviders } from "./providers/registry.ts";
 export type { JobProvider, ProviderId, Detection, NormalizedJob } from "./providers/types.ts";

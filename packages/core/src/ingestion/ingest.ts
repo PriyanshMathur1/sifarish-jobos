@@ -1,4 +1,4 @@
-import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
+import { and, eq, notInArray, sql } from "drizzle-orm";
 import type { Db } from "@jobos/db";
 import { schema } from "@jobos/db";
 import type { SafeFetcher } from "../fetch/safe-fetcher.ts";
@@ -68,10 +68,12 @@ export async function refreshCompany(
     .where(eq(schema.companies.id, companyId));
   if (!company) {
     outcome.error = "company not found";
+    await finalizeRun(db, runId, outcome);
     return outcome;
   }
   if (!company.atsProvider || !company.atsIdentifier) {
     outcome.error = "no provider configured";
+    await finalizeRun(db, runId, outcome);
     return outcome;
   }
 
@@ -81,13 +83,15 @@ export async function refreshCompany(
     ...(company.careersUrl ? { careersUrl: company.careersUrl } : {}),
   });
 
-  await db
-    .update(schema.companies)
-    .set({ lastCheckedAt: now })
-    .where(eq(schema.companies.id, companyId));
-
   if (!listing.ok) {
     outcome.error = listing.error.kind;
+    await db
+      .update(schema.companies)
+      .set({
+        lastCheckedAt: now,
+        consecutiveFailures: sql`${schema.companies.consecutiveFailures} + 1`,
+      })
+      .where(eq(schema.companies.id, companyId));
     await db.insert(schema.crawlErrors).values({
       runId,
       companyId,
@@ -247,7 +251,7 @@ export async function refreshCompany(
 
   await db
     .update(schema.companies)
-    .set({ lastSuccessfulCheckAt: now })
+    .set({ lastCheckedAt: now, lastSuccessfulCheckAt: now, consecutiveFailures: 0 })
     .where(eq(schema.companies.id, companyId));
 
   await finalizeRun(db, runId, outcome);
@@ -268,6 +272,3 @@ async function finalizeRun(db: Db, runId: string | null, o: RefreshOutcome): Pro
     })
     .where(eq(schema.refreshRuns.id, runId));
 }
-
-/** Test-only export kept minimal; inArray import used by future dedup work. */
-export const _internals = { inArray };

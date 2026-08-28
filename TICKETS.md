@@ -55,3 +55,24 @@ Checkpoint after each phase: lint → typecheck → unit → integration → mig
 - Prettier config + `format:check` in CI; timing-safe CRON_SECRET compare; fileURLToPath for FS paths.
 - DECISION (amends ticket 0.3): no `profile_skills` join table until the taxonomy `skills` table exists (Phase 1) — profile skills are a jsonb array meanwhile; migration to the join table happens with ticket 1.3.
 - ACKNOWLEDGED scope-ahead: security headers (2.11), profile editor (Phase 2 slice), `authenticators` table (WebAuthn-ready, unused) — kept deliberately.
+
+## Phase 1 review log (post code-review amendments)
+
+Fixed:
+
+- SafeFetcher body cap now enforced while streaming (connection cancelled at the byte limit) — was buffer-then-slice, an OOM vector.
+- Robots awareness added (opt-in `respectRobots`), honoured by the generic JSON-LD provider's HTML crawls; first-party board APIs skip it by design.
+- Missed-run recovery actually fires now: runs record `scheduledAt` = the slot, recovery runs carry `trigger='recovery'`, and manual runs no longer mask a missed cron slot. Covered by orchestrator integration tests.
+- Run completion is evidence-based: `completeFinishedRuns` closes a run only when `companiesProcessed >= companiesTotal` (new column) — the cron route no longer force-completes concurrent runs.
+- Persistent circuit break: `companies.consecutive_failures` (reset on success) — orchestrator skips sources with ≥5 consecutive failures for 24h; admin retry bypasses.
+- `user_job_events.user_id` FK cascade added (account deletion now truly removes history; orphans cleaned in migration).
+- `finalizeRun` accounting on early-error paths; OPEN events deduped hourly; saved/hidden SQL simplified with UUIDv7 tie-break; hide-then-save un-hide behavior documented as intended.
+- Jobs UI: market-eligibility + employment-type filters added; zod empty-param fix (empty GET fields no longer clear all filters).
+
+Deferred (recorded, next sessions):
+
+- DB-backed taxonomy tables + `job_skills`/`profile_skills` joins → arrive with the matching engine session (taxonomy is code+seed data until then).
+- `provider_health` aggregate table → admin currently derives health from `refresh_runs` + `crawl_errors` + per-company failure counters.
+- Cross-provider dedup fingerprint waterfall (ATS id → URL → simhash) → single-provider-per-company makes overlap rare in the current registry; `job_sources` schema is ready.
+- ATS `detect()` wiring into a user-facing "submit a careers URL" flow (PRD §65) + broader detection fixture matrix → Phase 3 scope.
+- Additional search filters (function, location taxonomy, source) and admin e2e coverage.

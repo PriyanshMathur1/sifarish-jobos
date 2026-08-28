@@ -119,6 +119,7 @@ export class SafeFetcher {
     now: () => number;
   };
   private hosts = new Map<string, HostState>();
+  private robotsCache = new Map<string, string[]>(); // host → disallowed path prefixes for UA *
 
   constructor(opts: SafeFetcherOptions = {}) {
     this.o = {
@@ -140,11 +141,21 @@ export class SafeFetcher {
 
   async fetch(
     url: string,
-    init: { method?: "GET"; headers?: Record<string, string> } = {},
+    init: { method?: "GET"; headers?: Record<string, string>; respectRobots?: boolean } = {},
   ): Promise<Result<FetchOk, FetchError>> {
     const guarded = await this.guard(url);
     if (!guarded.ok) return guarded;
     const host = new URL(url).hostname;
+
+    // Robots awareness (PRD §23) — opt-in for HTML page crawls (generic
+    // provider, contact discovery). First-party JSON APIs skip it.
+    if (init.respectRobots) {
+      const disallowed = await this.robotsDisallows(url);
+      const path = new URL(url).pathname;
+      if (disallowed.some((prefix) => prefix !== "" && path.startsWith(prefix))) {
+        return err({ kind: "blocked", reason: "disallowed by robots.txt" });
+      }
+    }
 
     const state = this.hostState(host);
     if (state.breakerOpenedAt !== null) {
@@ -229,9 +240,56 @@ export class SafeFetcher {
     return err({ kind: "blocked", reason: "too many redirects" });
   }
 
+  /**
+   * Streaming read with a hard byte cap — the connection is cancelled once
+   * the cap is reached, so a hostile 2GB response cannot buffer into memory.
+   */
   private async readCapped(res: Response): Promise<string> {
-    const text = await res.text();
-    return text.length > this.o.maxBodyBytes ? text.slice(0, this.o.maxBodyBytes) : text;
+    if (!res.body) return "";
+    const reader = res.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let received = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.byteLength;
+      if (received >= this.o.maxBodyBytes) {
+        chunks.push(value.slice(0, value.byteLength - (received - this.o.maxBodyBytes)));
+        await reader.cancel();
+        break;
+      }
+      chunks.push(value);
+    }
+    const buf = new Uint8Array(chunks.reduce((n, c) => n + c.byteLength, 0));
+    let offset = 0;
+    for (const c of chunks) {
+      buf.set(c, offset);
+      offset += c.byteLength;
+    }
+    return new TextDecoder().decode(buf);
+  }
+
+  /** Minimal robots.txt: Disallow prefixes under `User-agent: *`, cached per host. */
+  private async robotsDisallows(url: string): Promise<string[]> {
+    const origin = new URL(url);
+    const cached = this.robotsCache.get(origin.hostname);
+    if (cached) return cached;
+    const rules: string[] = [];
+    const res = await this.once(`${origin.protocol}//${origin.host}/robots.txt`, {});
+    if (res.ok && res.value.status === 200) {
+      let inStar = false;
+      for (const line of res.value.body.split("\n")) {
+        const [rawKey, ...rest] = line.split(":");
+        if (!rawKey || rest.length === 0) continue;
+        const key = rawKey.trim().toLowerCase();
+        const value = rest.join(":").trim();
+        if (key === "user-agent") inStar = value === "*";
+        else if (inStar && key === "disallow" && value) rules.push(value);
+      }
+    }
+    // Unreachable robots.txt (or non-200) → no restrictions assumed, per convention.
+    this.robotsCache.set(origin.hostname, rules);
+    return rules;
   }
 
   /** SSRF guard: scheme, then EVERY resolved address must be public. */

@@ -10,8 +10,9 @@ export const dynamic = "force-dynamic";
 const paramsSchema = z.object({
   q: z.string().max(200).optional(),
   remote: z.enum(["remote", "hybrid", "onsite"]).optional(),
-  market: z.enum(["IN_CONFIRMED", "REMOTE_UNVERIFIED"]).optional(),
   company: z.string().uuid().optional(),
+  market: z.enum(["IN_CONFIRMED", "REMOTE_UNVERIFIED"]).optional(),
+  etype: z.string().max(40).optional(),
   fresh: z.coerce.number().int().positive().max(365).optional(),
   saved: z.coerce.boolean().optional(),
   page: z.coerce.number().int().positive().default(1),
@@ -38,6 +39,7 @@ export default async function JobsPage({
       ...(p.q ? { q: p.q } : {}),
       ...(p.remote ? { remote: p.remote } : {}),
       ...(p.market ? { market: p.market } : {}),
+      ...(p.etype ? { employmentType: p.etype } : {}),
       ...(p.company ? { companyId: p.company } : {}),
       ...(p.fresh ? { freshDays: p.fresh } : {}),
       ...(p.saved ? { savedOnly: true } : {}),
@@ -87,6 +89,16 @@ export default async function JobsPage({
               {c.name} ({c.openJobs})
             </option>
           ))}
+        </select>
+        <select
+          name="market"
+          defaultValue={p.market ?? ""}
+          className="rounded-lg border border-line bg-white px-2 py-2 text-sm"
+          aria-label="Market eligibility"
+        >
+          <option value="">Any eligibility</option>
+          <option value="IN_CONFIRMED">India confirmed</option>
+          <option value="REMOTE_UNVERIFIED">Remote (unverified)</option>
         </select>
         <select
           name="fresh"

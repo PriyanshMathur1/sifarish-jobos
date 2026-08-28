@@ -17,8 +17,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   if (!row) notFound();
   const { job, companyName, companyIndustry, saved } = row;
 
-  // OPEN event (PRD §51) — recorded server-side on view.
-  await jobsRepo.recordJobEvent(db, userId, job.id, "OPEN");
+  // OPEN event (PRD §51) — deduped hourly so revalidations don't inflate it.
+  await jobsRepo.recordOpenOnce(db, userId, job.id);
 
   const meta = [job.locations.join(" · ") || null, job.remoteType, job.employmentType]
     .filter(Boolean)
