@@ -50,6 +50,8 @@ export default async function OutreachPage({
 
   const error = typeof sp.error === "string" ? ERROR_COPY[sp.error] : null;
   const done = typeof sp.done === "string" ? sp.done : null;
+  const bulkCreated = typeof sp.bulk_created === "string" ? Number(sp.bulk_created) : null;
+  const bulkSkipped = typeof sp.bulk_skipped === "string" ? Number(sp.bulk_skipped) : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -81,6 +83,13 @@ export default async function OutreachPage({
       {done === "sent" ? (
         <p className="rounded-lg border border-good/40 bg-white px-4 py-3 text-sm text-good">
           Sent.
+        </p>
+      ) : null}
+      {bulkCreated !== null ? (
+        <p className="rounded-lg border border-good/40 bg-white px-4 py-3 text-sm text-good">
+          Created {bulkCreated} Gmail draft{bulkCreated === 1 ? "" : "s"}
+          {bulkSkipped ? ` — skipped ${bulkSkipped} (no email, suppressed, or already messaged recently)` : ""}.
+          Open Gmail to review and send.
         </p>
       ) : null}
       {!gmail.connected ? (

@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/session";
 import { EmptyState } from "@/components/empty-state";
 import { addContact, importContacts, discoverFromPage } from "./actions";
 import { StatusBadge } from "@/components/status-badge";
+import { SelectAllCheckbox } from "@/components/select-all-checkbox";
 
 export const metadata = { title: "Contacts" };
 export const dynamic = "force-dynamic";
@@ -127,38 +128,60 @@ export default async function ContactsPage() {
           body="Add a recruiter or hiring manager above. If their company is one Sifarish tracks, email suggestions get sharper with every verified address."
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-line bg-white">
-          <table className="w-full text-sm">
-            <thead className="border-b border-line text-left text-muted">
-              <tr>
-                <th className="px-3 py-2">Name</th>
-                <th className="px-3 py-2">Title</th>
-                <th className="px-3 py-2">Company</th>
-                <th className="px-3 py-2">Email</th>
-                <th className="px-3 py-2">Confidence</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((c) => (
-                <tr key={c.id} className="border-b border-line/60 last:border-0">
-                  <td className="px-3 py-2 font-medium">
-                    <Link href={`/contacts/${c.id}`} className="hover:underline">
-                      {c.fullName}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2 text-muted">{c.title ?? "—"}</td>
-                  <td className="px-3 py-2">{c.companyName ?? "—"}</td>
-                  <td className="px-3 py-2">
-                    {c.businessEmail ?? <span className="text-muted">none yet</span>}
-                  </td>
-                  <td className="px-3 py-2">
-                    <StatusBadge status={c.emailStatus} />
-                  </td>
+        <form method="GET" action="/outreach/bulk">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm text-muted">
+              Select contacts with a known email to draft one templated outreach to each — every
+              draft still lands in your Gmail Drafts for a last look before you send it.
+            </p>
+            <button
+              type="submit"
+              className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper hover:opacity-90"
+            >
+              Reach out to selected
+            </button>
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-line bg-white">
+            <table className="w-full text-sm">
+              <thead className="border-b border-line text-left text-muted">
+                <tr>
+                  <th className="px-3 py-2">
+                    <SelectAllCheckbox name="c" />
+                  </th>
+                  <th className="px-3 py-2">Name</th>
+                  <th className="px-3 py-2">Title</th>
+                  <th className="px-3 py-2">Company</th>
+                  <th className="px-3 py-2">Email</th>
+                  <th className="px-3 py-2">Confidence</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((c) => (
+                  <tr key={c.id} className="border-b border-line/60 last:border-0">
+                    <td className="px-3 py-2">
+                      {c.businessEmail ? (
+                        <input type="checkbox" name="c" value={c.id} aria-label={`Select ${c.fullName}`} />
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-2 font-medium">
+                      <Link href={`/contacts/${c.id}`} className="hover:underline">
+                        {c.fullName}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2 text-muted">{c.title ?? "—"}</td>
+                    <td className="px-3 py-2">{c.companyName ?? "—"}</td>
+                    <td className="px-3 py-2">
+                      {c.businessEmail ?? <span className="text-muted">none yet</span>}
+                    </td>
+                    <td className="px-3 py-2">
+                      <StatusBadge status={c.emailStatus} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </form>
       )}
     </div>
   );
