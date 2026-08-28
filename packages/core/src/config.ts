@@ -38,6 +38,7 @@ const envSchema = z.object({
   GMAIL_OAUTH_CLIENT_SECRET: z.string().optional(),
   TOKEN_ENCRYPTION_KEY: z.string().length(64).optional(), // 32 bytes hex
   SMTP_URL: z.string().optional(),
+  HUNTER_API_KEY: z.string().optional(), // free-tier email finder/verifier, single-contact lookups only
 
   // Feature flags (PRD §130)
   CONTACT_DISCOVERY: bool,

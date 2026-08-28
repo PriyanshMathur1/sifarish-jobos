@@ -61,3 +61,4 @@ export {
   type ApproveInput,
 } from "./outreach/outreach.ts";
 export { discoverContacts, contactRelevance, type DiscoveredPerson } from "./contacts/discovery.ts";
+export { HunterClient, type HunterOutcome } from "./contacts/hunter.ts";

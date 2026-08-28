@@ -11,6 +11,9 @@ import {
   loadConfig,
   discoverContacts,
   SafeFetcher,
+  HunterClient,
+  parseName,
+  logger,
 } from "@sifarish/core";
 import { ilike, sql } from "drizzle-orm";
 import { rateLimit } from "@/lib/rate-limit";
@@ -201,4 +204,38 @@ export async function discoverFromPage(formData: FormData): Promise<void> {
     });
   }
   revalidatePath("/contacts");
+}
+
+/**
+ * One-contact-at-a-time Hunter.io lookup — free tier, single credit per
+ * click. Best-effort: any failure (no key configured, quota exhausted,
+ * network error) is a silent no-op, matching discoverFromPage's convention.
+ * Results are third-party inference, never VERIFIED (see hunter.ts).
+ */
+export async function lookupEmailViaHunter(contactId: string): Promise<void> {
+  const { userId } = await requireUser();
+  const config = loadConfig();
+  if (!config.HUNTER_API_KEY) return;
+  if (!rateLimit(`hunter:${userId}`, { ratePerMinute: 3 }).allowed) return;
+
+  const id = z.string().uuid().parse(contactId);
+  const db = getDb();
+  const row = await contactsRepo.getContact(db, userId, id);
+  if (!row || row.contact.businessEmail || !row.companyDomain) return;
+
+  const { first, last } = parseName(row.contact.fullName);
+  if (!first || !last) return;
+
+  const hunter = new HunterClient(config.HUNTER_API_KEY);
+  const outcome = await hunter.findEmail({ domain: row.companyDomain, firstName: first, lastName: last });
+
+  if (outcome.kind === "found") {
+    await contactsRepo.updateContactEmail(db, userId, id, outcome.email, outcome.status);
+    revalidatePath(`/contacts/${id}`);
+    return;
+  }
+  if (outcome.kind === "error" || outcome.kind === "quota_exceeded") {
+    logger.warn({ contactId: id, outcome }, "hunter lookup did not complete");
+  }
+  // not_found / invalid: nothing to save, page just keeps showing pattern-engine suggestions.
 }

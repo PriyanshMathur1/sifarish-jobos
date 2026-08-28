@@ -2,10 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { getDb, contactsRepo } from "@sifarish/db";
-import { EmailValidator, inferEmails } from "@sifarish/core";
+import { EmailValidator, inferEmails, loadConfig } from "@sifarish/core";
 import { requireUser } from "@/lib/session";
 import { StatusBadge } from "@/components/status-badge";
-import { chooseSuggestedEmail, suppressContactAction } from "../actions";
+import { chooseSuggestedEmail, suppressContactAction, lookupEmailViaHunter } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +46,9 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
     );
     suggestions = suggestions.filter((s) => s.status !== "INVALID");
   }
+
+  const hunterAvailable =
+    !contact.businessEmail && !!companyDomain && !!loadConfig().HUNTER_API_KEY;
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -107,6 +110,19 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             the email if you find it.
           </p>
         )}
+        {hunterAvailable ? (
+          <form action={lookupEmailViaHunter.bind(null, contact.id)} className="mt-3">
+            <button
+              type="submit"
+              className="rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-accent-soft"
+            >
+              Look up via Hunter.io
+            </button>
+            <span className="ml-2 text-xs text-muted">
+              uses 1 of your free monthly credits · still not guaranteed
+            </span>
+          </form>
+        ) : null}
       </section>
 
       <section className="mt-4 rounded-xl border border-line bg-white p-4 text-sm">
