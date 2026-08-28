@@ -121,7 +121,12 @@ describe("approveOutreach", () => {
     const gmail = new FakeGmailClient();
     const prep = await prepareOutreach(db as never, userId, { contactId, jobId, templateId });
     if (!prep.ok) throw new Error("prepare failed");
-    const r = await approveOutreach(deps(gmail), userId, prep.value, "draft");
+    const r = await approveOutreach(
+      deps(gmail),
+      userId,
+      { contactId, jobId, templateId, subject: prep.value.subject, body: prep.value.body },
+      "draft",
+    );
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.value.status).toBe("DRAFTED");
@@ -137,25 +142,50 @@ describe("approveOutreach", () => {
 
   it("recipient dedup blocks a repeat within the window", async () => {
     const gmail = new FakeGmailClient();
-    const prep = await prepareOutreach(db as never, userId, { contactId, jobId, templateId });
-    if (!prep.ok) throw new Error("prepare failed");
-    const r = await approveOutreach(deps(gmail), userId, prep.value, "draft");
+    const r = await approveOutreach(
+      deps(gmail),
+      userId,
+      { contactId, jobId, templateId, subject: "again", body: "again" },
+      "draft",
+    );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error.kind).toBe("duplicate_recipient");
     expect(gmail.drafts).toHaveLength(0);
   });
 
+  it("the recipient is derived server-side from the owner-scoped contact — a foreign contactId is refused", async () => {
+    const [stranger] = await db
+      .insert(schema.users)
+      .values({ email: "other@jobos.local" })
+      .returning();
+    const [foreign] = await db
+      .insert(schema.contacts)
+      .values({
+        userId: stranger!.id,
+        fullName: "Not Yours",
+        businessEmail: "notyours@razorpay.com",
+      })
+      .returning();
+    const gmail = new FakeGmailClient();
+    const r = await approveOutreach(
+      deps(gmail),
+      userId,
+      { contactId: foreign!.id, jobId: null, templateId, subject: "s", body: "b" },
+      "draft",
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.kind).toBe("not_found");
+    expect(gmail.drafts).toHaveLength(0);
+  });
+
   it("send mode is refused when the flag is off", async () => {
     const gmail = new FakeGmailClient();
-    const preview = {
-      contactId,
-      jobId,
-      templateId,
-      toEmail: "other.person@razorpay.com",
-      subject: "s",
-      body: "b",
-    };
-    const r = await approveOutreach(deps(gmail), userId, preview, "send");
+    const r = await approveOutreach(
+      deps(gmail),
+      userId,
+      { contactId, jobId, templateId, subject: "s", body: "b" },
+      "send",
+    );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error.kind).toBe("send_disabled");
   });
@@ -163,18 +193,18 @@ describe("approveOutreach", () => {
   it("daily cap blocks sends past the limit (PRD §80)", async () => {
     const gmail = new FakeGmailClient();
     const d = deps(gmail, { send: true, cap: 2 });
+    const mk = async (n: number) => {
+      const [c] = await db
+        .insert(schema.contacts)
+        .values({ userId, fullName: `Person ${n}`, businessEmail: `person${n}@razorpay.com` })
+        .returning();
+      return c!.id;
+    };
     for (const n of [1, 2]) {
       const r = await approveOutreach(
         d,
         userId,
-        {
-          contactId,
-          jobId: null,
-          templateId,
-          toEmail: `person${n}@razorpay.com`,
-          subject: "s",
-          body: "b",
-        },
+        { contactId: await mk(n), jobId: null, templateId, subject: "s", body: "b" },
         "send",
       );
       expect(r.ok).toBe(true);
@@ -182,14 +212,7 @@ describe("approveOutreach", () => {
     const r3 = await approveOutreach(
       d,
       userId,
-      {
-        contactId,
-        jobId: null,
-        templateId,
-        toEmail: "person3@razorpay.com",
-        subject: "s",
-        body: "b",
-      },
+      { contactId: await mk(3), jobId: null, templateId, subject: "s", body: "b" },
       "send",
     );
     expect(r3.ok).toBe(false);
@@ -202,18 +225,15 @@ describe("approveOutreach", () => {
       emailHash: emailHash("optout@razorpay.com"),
       domain: "razorpay.com",
     });
+    const [c] = await db
+      .insert(schema.contacts)
+      .values({ userId, fullName: "Opt Out", businessEmail: "optout@razorpay.com" })
+      .returning();
     const gmail = new FakeGmailClient();
     const r = await approveOutreach(
       deps(gmail),
       userId,
-      {
-        contactId,
-        jobId: null,
-        templateId,
-        toEmail: "optout@razorpay.com",
-        subject: "s",
-        body: "b",
-      },
+      { contactId: c!.id, jobId: null, templateId, subject: "s", body: "b" },
       "draft",
     );
     expect(r.ok).toBe(false);
@@ -221,19 +241,16 @@ describe("approveOutreach", () => {
   });
 
   it("a Gmail failure preserves the message as FAILED — never lost (PRD §123)", async () => {
+    const [c] = await db
+      .insert(schema.contacts)
+      .values({ userId, fullName: "Keeper", businessEmail: "keeper@razorpay.com" })
+      .returning();
     const gmail = new FakeGmailClient();
     gmail.failNext = { kind: "network", detail: "offline" };
     const r = await approveOutreach(
       deps(gmail),
       userId,
-      {
-        contactId,
-        jobId: null,
-        templateId,
-        toEmail: "keeper@razorpay.com",
-        subject: "precious",
-        body: "text",
-      },
+      { contactId: c!.id, jobId: null, templateId, subject: "precious", body: "text" },
       "draft",
     );
     expect(r.ok).toBe(false);

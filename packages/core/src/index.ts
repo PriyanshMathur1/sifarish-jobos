@@ -58,5 +58,6 @@ export {
   emailHash,
   type Preview,
   type PrepareInput,
+  type ApproveInput,
 } from "./outreach/outreach.ts";
 export { discoverContacts, contactRelevance, type DiscoveredPerson } from "./contacts/discovery.ts";

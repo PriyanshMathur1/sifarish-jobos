@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { z } from "zod";
-import { desc, eq, and, isNull, inArray } from "drizzle-orm";
+import { desc, eq, and, isNull, inArray, sql } from "drizzle-orm";
 import { getDb, schema } from "@jobos/db";
 import { prepareOutreach } from "@jobos/core";
 import { requireUser } from "@/lib/session";
@@ -50,7 +50,11 @@ export default async function NewOutreachPage({
       .where(inArray(schema.jobs.status, ["ACTIVE", "UNKNOWN"]))
       .orderBy(desc(schema.jobs.firstSeenAt))
       .limit(100),
-    db.select().from(schema.templates).orderBy(desc(schema.templates.isBuiltin)),
+    db
+      .select()
+      .from(schema.templates)
+      .where(sql`(${schema.templates.userId} = ${userId} or ${schema.templates.isBuiltin} = true)`)
+      .orderBy(desc(schema.templates.isBuiltin)),
   ]);
 
   const ready = contactId && templateId;
@@ -166,7 +170,6 @@ export default async function NewOutreachPage({
           <input type="hidden" name="contactId" value={prep.value.contactId} />
           <input type="hidden" name="jobId" value={prep.value.jobId ?? ""} />
           <input type="hidden" name="templateId" value={prep.value.templateId} />
-          <input type="hidden" name="toEmail" value={prep.value.toEmail} />
           <label className="flex flex-col gap-1 text-sm font-medium">
             Subject
             <input

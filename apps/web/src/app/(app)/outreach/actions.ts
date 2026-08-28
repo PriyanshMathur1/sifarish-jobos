@@ -12,8 +12,12 @@ const approveInput = z.object({
   contactId: z.string().uuid(),
   jobId: z.string().uuid().nullable(),
   templateId: z.string().uuid(),
-  toEmail: z.string().email(),
-  subject: z.string().min(1).max(500),
+  // No CR/LF in a header line — belt to the Gmail client's braces.
+  subject: z
+    .string()
+    .min(1)
+    .max(500)
+    .regex(/^[^\r\n]*$/),
   body: z.string().min(1).max(10000),
   mode: z.enum(["draft", "send"]),
 });
@@ -24,7 +28,6 @@ export async function approveAction(formData: FormData): Promise<void> {
     contactId: formData.get("contactId"),
     jobId: formData.get("jobId") || null,
     templateId: formData.get("templateId"),
-    toEmail: formData.get("toEmail"),
     subject: formData.get("subject"),
     body: formData.get("body"),
     mode: formData.get("mode"),
@@ -50,7 +53,6 @@ export async function approveAction(formData: FormData): Promise<void> {
       contactId: input.contactId,
       jobId: input.jobId,
       templateId: input.templateId,
-      toEmail: input.toEmail,
       subject: input.subject,
       body: input.body,
     },

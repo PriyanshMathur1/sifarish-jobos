@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getDb, contactsRepo } from "@jobos/db";
 import { requireUser } from "@/lib/session";
 import { EmptyState } from "@/components/empty-state";
-import { addContact, importContacts } from "./actions";
+import { addContact, importContacts, discoverFromPage } from "./actions";
 import { StatusBadge } from "@/components/status-badge";
 
 export const metadata = { title: "Contacts" };
@@ -88,6 +88,38 @@ export default async function ContactsPage() {
           </button>
         </form>
       </section>
+
+      {process.env.CONTACT_DISCOVERY === "true" ? (
+        <form
+          action={discoverFromPage}
+          className="flex flex-wrap items-end gap-2 rounded-xl border border-line bg-white p-4"
+        >
+          <div className="flex-1">
+            <h2 className="font-semibold">Discover from a public page</h2>
+            <p className="text-xs text-muted">
+              Company team/about pages with schema.org Person data only — conservative by design.
+            </p>
+          </div>
+          <input
+            name="url"
+            type="url"
+            required
+            placeholder="https://company.example/team"
+            className="min-w-64 rounded-lg border border-line px-3 py-2"
+          />
+          <input
+            name="companyName"
+            placeholder="Company (optional)"
+            className="rounded-lg border border-line px-3 py-2"
+          />
+          <button
+            type="submit"
+            className="rounded-lg border border-line px-4 py-2 font-medium hover:bg-accent-soft"
+          >
+            Discover
+          </button>
+        </form>
+      ) : null}
 
       {rows.length === 0 ? (
         <EmptyState

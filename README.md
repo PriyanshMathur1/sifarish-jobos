@@ -47,3 +47,12 @@ PW_CHROMIUM_PATH=<chromium> pnpm e2e    # omit the var to use downloaded browser
 - ⏳ Next sessions — matching engine + Discover feed, notifications/digests, reply tracking, Tier-2 providers, analytics
 
 Docs: `SPEC.md` (locked spec) · `TICKETS.md` (plan + review logs) · `ARCHITECTURE.md` · `DATABASE.md` · `DATA_SOURCES.md` · `SECURITY.md` · `PRIVACY.md` · `DEPLOYMENT.md` (Vercel+Neon+domain runbook) · `RUNBOOK.md` · `MATCHING.md` / `ML.md` (deferred-scope notes)
+
+## Known limitations (V1, deliberate)
+
+- **Live-source verification**: the build sandbox has no egress to ATS hosts; provider behaviour is verified against recorded real payloads (Postman/FamPay/Linear boards). First live refresh happens on your machine or the deploy.
+- **Catch-all detection**: EmailValidator stops at MX. True catch-all detection needs SMTP RCPT probing, which the PRD forbids as abusive — this is exactly why inferred addresses are never labelled better than HIGH_CONFIDENCE.
+- **In-process rate limiter**: per-instance on serverless; the durable guards are the DB-backed daily send cap + recipient dedup, which hold across instances.
+- **Contact discovery** is JSON-LD-Person-only and flagged off by default; most company pages lack structured people data. Manual add/import is the designed primary path.
+- **Templates**: the 5 built-ins render with strict variables; a custom-template editor UI is deferred (schema supports it).
+- **Matching engine / Discover feed**: deferred by the locked scope (outreach first) — see MATCHING.md.

@@ -32,11 +32,15 @@ export interface TokenBundle {
   expiry_date?: number; // epoch ms
 }
 
-function toRfc822(email: OutboundEmail, from?: string): string {
+/** Header values must never contain CR/LF — injection would smuggle extra
+ *  recipients (Bcc) past dedup, caps, and suppression. */
+const headerSafe = (s: string) => s.replace(/[\r\n]+/g, " ").trim();
+
+export function toRfc822(email: OutboundEmail, from?: string): string {
   const headers = [
-    from ? `From: ${from}` : null,
-    `To: ${email.to}`,
-    `Subject: ${email.subject}`,
+    from ? `From: ${headerSafe(from)}` : null,
+    `To: ${headerSafe(email.to)}`,
+    `Subject: ${headerSafe(email.subject)}`,
     `MIME-Version: 1.0`,
     `Content-Type: text/plain; charset="UTF-8"`,
   ]

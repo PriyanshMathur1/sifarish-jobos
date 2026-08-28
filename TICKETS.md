@@ -76,3 +76,16 @@ Deferred (recorded, next sessions):
 - Cross-provider dedup fingerprint waterfall (ATS id → URL → simhash) → single-provider-per-company makes overlap rare in the current registry; `job_sources` schema is ready.
 - ATS `detect()` wiring into a user-facing "submit a careers URL" flow (PRD §65) + broader detection fixture matrix → Phase 3 scope.
 - Additional search filters (function, location taxonomy, source) and admin e2e coverage.
+
+## Phase 2 review log (post code-review amendments)
+
+Fixed:
+
+- **Header injection closed**: CR/LF is stripped from every RFC-822 header line (To/Subject/From) — a crafted subject can no longer smuggle `Bcc:` past dedup/caps/suppression. Unit-tested; the web action also rejects newline subjects at the zod layer.
+- **Trust boundary redrawn**: `approveOutreach` now takes ids + the user's edited subject/body only. The RECIPIENT is re-derived server-side from the owner-scoped contact row (foreign contactId ⇒ not_found, integration-tested), per-contact `suppressedAt` is re-checked, and the template must be builtin-or-owned.
+- **Race closed**: suppression/dedup/cap checks + the PREPARED insert now run in one transaction under a per-user advisory lock; PREPARED rows count toward dedup and the send cap, so concurrent approvals cannot double-pass.
+- Templates listing owner-scoped (was leaking other users' template names); every draft/send audit-logged; contact create dedups by (user,email) and (user,name,company); paste import validates + learns patterns like single add.
+- ContactDiscovery wired: "Discover from a public page" on /contacts behind CONTACT_DISCOVERY, suppression honoured at rediscovery, provenance stored.
+- E2E added: paste-import with dedup, confidence-label visibility, snapshot-survives-upstream-removal.
+
+Documented (deliberate limitations, README "Known limitations"): catch-all detection (needs forbidden SMTP probing), per-instance rate limiter (DB cap is the durable guard), JSON-LD-only discovery, deferred custom-template editor and import preview step.

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signInAs, deleteUser } from "./helpers";
+import { signInAs, deleteUser, markJobRemoved } from "./helpers";
 
 /**
  * Phase 2 critical path (SPEC §6 E2E): contact → suggested email →
@@ -73,6 +73,32 @@ test("outreach critical path: contact → suggestion → preview → draft → t
   await expect(trackerCard.locator("select")).toHaveValue("CONTACTED");
 });
 
+test("paste import creates several contacts with dedup (ticket 2.2)", async ({ context, page }) => {
+  await signInAs(context, EMAIL);
+  await page.goto("/contacts");
+  const bulk = [
+    "Rahul Verma, Product Director, Fam (FamPay)",
+    "Maya Iyer, Recruiter, Hevo Data",
+    "Rahul Verma, Product Director, Fam (FamPay)", // duplicate line — must not double
+  ].join("\n");
+  await page.locator('textarea[name="bulk"]').fill(bulk);
+  await page.getByRole("button", { name: "Import" }).click();
+  await expect(page.getByRole("link", { name: "Maya Iyer" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Rahul Verma" })).toHaveCount(1);
+});
+
+test("suggestions carry confidence labels; no-email fallback is honest (ticket 2.5)", async ({
+  context,
+  page,
+}) => {
+  await signInAs(context, EMAIL);
+  await page.goto("/contacts");
+  await page.getByRole("link", { name: "Rahul Verma" }).click();
+  // Company famapp.in domain → pattern suggestions with labels
+  await expect(page.getByText("Suggested addresses", { exact: false })).toBeVisible();
+  await expect(page.getByText(/Probable|High confidence|Unknown/).first()).toBeVisible();
+});
+
 test("mark applied stores a snapshot and tracker status updates", async ({ context, page }) => {
   await signInAs(context, EMAIL);
   await page.goto("/jobs?q=Integrations");
@@ -89,4 +115,13 @@ test("mark applied stores a snapshot and tracker status updates", async ({ conte
   await expect(
     page.locator("article", { hasText: "Product Manager - Integrations" }).locator("select"),
   ).toHaveValue("INTERVIEW");
+
+  // Listing removed upstream → the tracker keeps the snapshot and says so (PRD §85)
+  await markJobRemoved("Product Manager - Integrations");
+  await page.reload();
+  await expect(
+    page
+      .locator("article", { hasText: "Product Manager - Integrations" })
+      .getByText("listing removed — snapshot kept"),
+  ).toBeVisible();
 });

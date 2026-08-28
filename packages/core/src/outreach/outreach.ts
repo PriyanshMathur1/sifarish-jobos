@@ -129,7 +129,9 @@ export interface ApproveDeps {
 }
 
 export type ApproveError =
+  | { kind: "not_found"; what: string }
   | { kind: "suppressed" }
+  | { kind: "no_email" }
   | { kind: "duplicate_recipient"; daysAgo: number }
   | { kind: "send_disabled" }
   | { kind: "cap_reached"; cap: number }
@@ -142,72 +144,134 @@ export interface ApproveResult {
 
 const DEDUP_DAYS = 14;
 
+/**
+ * The trust boundary: ids + the user's edited subject/body come from the
+ * client, but the RECIPIENT is always re-derived server-side from the
+ * owner-scoped contact row — a form cannot address anyone the user's
+ * contact list doesn't hold, and per-contact suppression is re-checked here.
+ */
+export interface ApproveInput {
+  contactId: string;
+  jobId: string | null;
+  templateId: string;
+  subject: string;
+  body: string;
+}
+
 export async function approveOutreach(
   deps: ApproveDeps,
   userId: string,
-  preview: Preview,
+  input: ApproveInput,
   mode: "draft" | "send",
 ): Promise<Result<ApproveResult, ApproveError>> {
   const { db } = deps;
 
-  // Suppression (PRD §75) — checked at send time too, not just discovery.
-  const [suppressed] = await db
-    .select({ id: schema.contactSuppressions.id })
-    .from(schema.contactSuppressions)
-    .where(eq(schema.contactSuppressions.emailHash, emailHash(preview.toEmail)));
-  if (suppressed) return err({ kind: "suppressed" });
+  // Owner-scoped contact lookup — the ONLY source of the recipient address.
+  const [contact] = await db
+    .select()
+    .from(schema.contacts)
+    .where(and(eq(schema.contacts.id, input.contactId), eq(schema.contacts.userId, userId)));
+  if (!contact) return err({ kind: "not_found", what: "contact" });
+  if (contact.suppressedAt) return err({ kind: "suppressed" });
+  if (!contact.businessEmail) return err({ kind: "no_email" });
+  const toEmail = contact.businessEmail;
 
-  // Recipient dedup (PRD §80): one message per recipient per window.
-  const [recent] = await db
-    .select({ createdAt: schema.outreachMessages.createdAt })
-    .from(schema.outreachMessages)
+  // Template must be builtin or the user's own.
+  const [template] = await db
+    .select({ id: schema.templates.id })
+    .from(schema.templates)
     .where(
       and(
-        eq(schema.outreachMessages.userId, userId),
-        eq(schema.outreachMessages.toEmail, preview.toEmail),
-        gte(
-          schema.outreachMessages.createdAt,
-          sql`now() - interval '${sql.raw(String(DEDUP_DAYS))} days'`,
-        ),
-        sql`${schema.outreachMessages.status} in ('DRAFTED','SENT','REPLIED')`,
+        eq(schema.templates.id, input.templateId),
+        sql`(${schema.templates.userId} = ${userId} or ${schema.templates.isBuiltin} = true)`,
       ),
     );
-  if (recent) {
-    const daysAgo = Math.floor((Date.now() - recent.createdAt.getTime()) / 86_400_000);
-    return err({ kind: "duplicate_recipient", daysAgo });
-  }
+  if (!template) return err({ kind: "not_found", what: "template" });
 
-  if (mode === "send") {
-    if (!deps.directSendEnabled) return err({ kind: "send_disabled" });
-    const [{ count }] = (await db
-      .select({ count: sql<number>`count(*)::int` })
+  const preview: Preview = {
+    contactId: contact.id,
+    jobId: input.jobId,
+    templateId: template.id,
+    toEmail,
+    subject: input.subject,
+    body: input.body,
+  };
+
+  if (mode === "send" && !deps.directSendEnabled) return err({ kind: "send_disabled" });
+
+  // Guard checks + PREPARED insert run in ONE transaction under a per-user
+  // advisory lock, so two concurrent approvals cannot both pass the
+  // check-then-insert window for dedup or the daily cap. A PREPARED row
+  // counts toward both from the instant it exists.
+  type GuardFail = Extract<
+    ApproveError,
+    { kind: "suppressed" | "duplicate_recipient" | "cap_reached" }
+  >;
+  const guarded = await db.transaction(async (tx): Promise<Result<string, GuardFail>> => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${userId}))`);
+
+    // Suppression (PRD §75) — checked at send time too, not just discovery.
+    const [suppressed] = await tx
+      .select({ id: schema.contactSuppressions.id })
+      .from(schema.contactSuppressions)
+      .where(eq(schema.contactSuppressions.emailHash, emailHash(preview.toEmail)));
+    if (suppressed) return err({ kind: "suppressed" });
+
+    // Recipient dedup (PRD §80): one message per recipient per window —
+    // PREPARED included, so an in-flight approval blocks a twin.
+    const [recent] = await tx
+      .select({ createdAt: schema.outreachMessages.createdAt })
       .from(schema.outreachMessages)
       .where(
         and(
           eq(schema.outreachMessages.userId, userId),
-          eq(schema.outreachMessages.status, "SENT"),
-          gte(schema.outreachMessages.sentAt, sql`date_trunc('day', now())`),
+          eq(schema.outreachMessages.toEmail, preview.toEmail),
+          gte(
+            schema.outreachMessages.createdAt,
+            sql`now() - interval '${sql.raw(String(DEDUP_DAYS))} days'`,
+          ),
+          sql`${schema.outreachMessages.status} in ('PREPARED','DRAFTED','SENT','REPLIED')`,
         ),
-      )) as [{ count: number }];
-    if (count >= deps.dailySendCap) return err({ kind: "cap_reached", cap: deps.dailySendCap });
-  }
+      );
+    if (recent) {
+      const daysAgo = Math.floor((Date.now() - recent.createdAt.getTime()) / 86_400_000);
+      return err({ kind: "duplicate_recipient", daysAgo });
+    }
 
-  // Persist BEFORE Gmail — the message text must never be lost.
-  const [row] = await db
-    .insert(schema.outreachMessages)
-    .values({
-      userId,
-      contactId: preview.contactId,
-      jobId: preview.jobId,
-      templateId: preview.templateId,
-      toEmail: preview.toEmail,
-      subject: preview.subject,
-      body: preview.body,
-      mode,
-      status: "PREPARED",
-    })
-    .returning({ id: schema.outreachMessages.id });
-  const outreachId = row!.id;
+    if (mode === "send") {
+      const [{ count }] = (await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.outreachMessages)
+        .where(
+          and(
+            eq(schema.outreachMessages.userId, userId),
+            eq(schema.outreachMessages.mode, "send"),
+            sql`${schema.outreachMessages.status} in ('PREPARED','SENT')`,
+            gte(schema.outreachMessages.createdAt, sql`date_trunc('day', now())`),
+          ),
+        )) as [{ count: number }];
+      if (count >= deps.dailySendCap) return err({ kind: "cap_reached", cap: deps.dailySendCap });
+    }
+
+    // Persist BEFORE Gmail — the message text must never be lost.
+    const [row] = await tx
+      .insert(schema.outreachMessages)
+      .values({
+        userId,
+        contactId: preview.contactId,
+        jobId: preview.jobId,
+        templateId: preview.templateId,
+        toEmail: preview.toEmail,
+        subject: preview.subject,
+        body: preview.body,
+        mode,
+        status: "PREPARED",
+      })
+      .returning({ id: schema.outreachMessages.id });
+    return ok(row!.id);
+  });
+  if (!guarded.ok) return guarded;
+  const outreachId = guarded.value;
 
   const email = { to: preview.toEmail, subject: preview.subject, body: preview.body };
   const result =
@@ -234,6 +298,15 @@ export async function approveOutreach(
     .update(schema.outreachMessages)
     .set(update)
     .where(eq(schema.outreachMessages.id, outreachId));
+
+  // Every draft/send is audit-logged (SPEC §5).
+  await db.insert(schema.auditLogs).values({
+    actorId: userId,
+    action: mode === "draft" ? "outreach.draft" : "outreach.send",
+    subjectType: "outreach_message",
+    subjectId: outreachId,
+    meta: { toEmailHash: emailHash(preview.toEmail) },
+  });
 
   // Behaviour signal + CRM bump (PRD §51, §83).
   if (preview.jobId) {

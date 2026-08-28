@@ -47,7 +47,34 @@ export async function getContact(db: Db, userId: string, contactId: string) {
   return row ?? null;
 }
 
+/**
+ * Insert with dedup: an existing non-suppressed contact with the same email,
+ * or the same name at the same company, is returned instead of duplicated.
+ */
 export async function createContact(db: Db, userId: string, input: NewContact) {
+  const dupConds = [];
+  if (input.businessEmail) {
+    dupConds.push(
+      and(eq(contacts.userId, userId), eq(contacts.businessEmail, input.businessEmail)),
+    );
+  }
+  if (input.companyId) {
+    dupConds.push(
+      and(
+        eq(contacts.userId, userId),
+        eq(contacts.companyId, input.companyId),
+        sql`lower(${contacts.fullName}) = lower(${input.fullName})`,
+      ),
+    );
+  }
+  for (const cond of dupConds) {
+    const [existing] = await db
+      .select({ id: contacts.id })
+      .from(contacts)
+      .where(and(cond, isNull(contacts.suppressedAt)))
+      .limit(1);
+    if (existing) return existing;
+  }
   const [row] = await db
     .insert(contacts)
     .values({

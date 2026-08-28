@@ -55,3 +55,13 @@ export async function deleteUser(email: string): Promise<void> {
     await pool.end();
   }
 }
+
+/** Simulate the source removing a listing (two-strike outcome) for snapshot tests. */
+export async function markJobRemoved(title: string): Promise<void> {
+  const pool = new pg.Pool({ connectionString: DB_URL, max: 1 });
+  try {
+    await pool.query(`update jobs set status = 'REMOVED' where title = $1`, [title]);
+  } finally {
+    await pool.end();
+  }
+}

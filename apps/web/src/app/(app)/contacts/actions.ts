@@ -4,8 +4,15 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/session";
 import { getDb, contactsRepo, schema, audit } from "@jobos/db";
-import { EmailValidator, emailHash, learnPattern } from "@jobos/core";
-import { ilike } from "drizzle-orm";
+import {
+  EmailValidator,
+  emailHash,
+  learnPattern,
+  loadConfig,
+  discoverContacts,
+  SafeFetcher,
+} from "@jobos/core";
+import { ilike, sql } from "drizzle-orm";
 import { rateLimit } from "@/lib/rate-limit";
 
 const contactInput = z.object({
@@ -149,5 +156,49 @@ export async function suppressContactAction(contactId: string): Promise<void> {
     subjectType: "contact",
     subjectId: id,
   });
+  revalidatePath("/contacts");
+}
+
+/**
+ * Best-effort discovery from a company-owned public page (PRD §66–69,
+ * behind CONTACT_DISCOVERY). JSON-LD Person only; robots honoured inside
+ * discoverContacts; suppressed addresses are never re-created (PRD §75).
+ */
+export async function discoverFromPage(formData: FormData): Promise<void> {
+  const { userId } = await requireUser();
+  const config = loadConfig();
+  if (!config.CONTACT_DISCOVERY) return;
+  if (!rateLimit(`discover:${userId}`, { ratePerMinute: 3 }).allowed) return;
+
+  const url = z.string().url().max(500).parse(formData.get("url"));
+  const companyName = z
+    .string()
+    .max(200)
+    .optional()
+    .parse(formData.get("companyName") || undefined);
+  const companyId = await companyIdByName(companyName);
+
+  const db = getDb();
+  const result = await discoverContacts(new SafeFetcher(), url);
+  if (!result.ok) return; // page unreachable/blocked — nothing to add
+  for (const person of result.value) {
+    if (person.email) {
+      const [suppressed] = await db
+        .select({ id: schema.contactSuppressions.id })
+        .from(schema.contactSuppressions)
+        .where(sql`${schema.contactSuppressions.emailHash} = ${emailHash(person.email)}`);
+      if (suppressed) continue;
+    }
+    await contactsRepo.createContact(db, userId, {
+      fullName: person.fullName,
+      title: person.title,
+      companyId,
+      businessEmail: person.email,
+      emailStatus: person.email ? "VERIFIED" : "UNKNOWN", // page-published = observed
+      professionalUrls: person.url ? [person.url] : [],
+      sourceType: "discovered",
+      sourceUrl: person.sourceUrl,
+    });
+  }
   revalidatePath("/contacts");
 }
