@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { jobsRepo } from "@sifarish/db";
 import { freshnessLabel } from "@/lib/freshness";
 import { saveJob, unsaveJob, hideJob } from "@/app/(app)/jobs/actions";
+import { BookmarkIcon, XIcon } from "@/components/icons";
 
 /** Job card (PRD §58): company, role, location · mode, freshness, save/hide. */
 export function JobCard({ job }: { job: jobsRepo.JobListItem }) {
@@ -29,12 +30,13 @@ export function JobCard({ job }: { job: jobsRepo.JobListItem }) {
             <button
               type="submit"
               aria-label={job.saved ? "Unsave job" : "Save job"}
-              className={`rounded-md border px-2.5 py-1 text-sm ${
+              className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm ${
                 job.saved
                   ? "border-accent bg-accent-soft text-accent"
                   : "border-line hover:bg-accent-soft"
               }`}
             >
+              <BookmarkIcon className="h-3.5 w-3.5" />
               {job.saved ? "Saved" : "Save"}
             </button>
           </form>
@@ -42,8 +44,9 @@ export function JobCard({ job }: { job: jobsRepo.JobListItem }) {
             <button
               type="submit"
               aria-label="Hide job"
-              className="rounded-md border border-line px-2.5 py-1 text-sm text-muted hover:bg-paper"
+              className="flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1 text-sm text-muted hover:bg-paper"
             >
+              <XIcon className="h-3.5 w-3.5" />
               Hide
             </button>
           </form>

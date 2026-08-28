@@ -72,7 +72,7 @@ export default async function NewOutreachPage({
       <Link href="/outreach" className="text-sm text-muted hover:underline">
         ← Outreach
       </Link>
-      <h1 className="mt-2 text-xl font-semibold">New outreach</h1>
+      <h1 className="font-display mt-2 text-2xl tracking-tight">New outreach</h1>
 
       <form
         method="GET"

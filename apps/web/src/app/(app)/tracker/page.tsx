@@ -24,7 +24,7 @@ export default async function TrackerPage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-xl font-semibold">Tracker</h1>
+        <h1 className="font-display text-[28px] tracking-tight">Tracker</h1>
         <p className="mt-1 text-sm text-muted">
           Every application, with the listing snapshot kept even if the company removes it.
         </p>

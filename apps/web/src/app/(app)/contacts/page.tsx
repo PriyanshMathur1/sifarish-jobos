@@ -16,7 +16,7 @@ export default async function ContactsPage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-xl font-semibold">Contacts</h1>
+        <h1 className="font-display text-[28px] tracking-tight">Contacts</h1>
         <p className="mt-1 text-sm text-muted">
           Recruiters and hiring managers you can reach out to. Add people you find yourself — Sifarish
           suggests probable work emails with honest confidence labels.

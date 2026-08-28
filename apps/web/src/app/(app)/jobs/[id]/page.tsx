@@ -6,6 +6,7 @@ import { freshnessLabel } from "@/lib/freshness";
 import Link from "next/link";
 import { saveJob, unsaveJob, hideJob } from "../actions";
 import { markAppliedAction } from "../../tracker/actions";
+import { ExternalLinkIcon, CheckIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           {companyName}
           {companyIndustry ? ` · ${companyIndustry}` : ""}
         </p>
-        <h1 className="mt-1 text-2xl font-semibold">{job.title}</h1>
+        <h1 className="font-display mt-1 text-[30px] tracking-tight">{job.title}</h1>
         <p className="mt-2 text-sm text-muted">{meta}</p>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
@@ -65,9 +66,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               href={job.applyUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-lg bg-ink px-4 py-2 font-medium text-paper hover:opacity-90"
+              className="flex items-center gap-2 rounded-lg bg-ink px-4 py-2 font-medium text-paper hover:opacity-90"
             >
-              Apply at source ↗
+              Apply at source
+              <ExternalLinkIcon className="h-3.5 w-3.5" />
             </a>
           ) : null}
           <form action={saved ? unsaveJob.bind(null, job.id) : saveJob.bind(null, job.id)}>
@@ -85,8 +87,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           <form action={markAppliedAction.bind(null, job.id)}>
             <button
               type="submit"
-              className="rounded-lg border border-good px-4 py-2 font-medium text-good hover:bg-good hover:text-paper"
+              className="flex items-center gap-2 rounded-lg border border-good px-4 py-2 font-medium text-good hover:bg-good hover:text-paper"
             >
+              <CheckIcon className="h-3.5 w-3.5" />
               Mark applied
             </button>
           </form>

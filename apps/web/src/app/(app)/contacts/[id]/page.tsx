@@ -57,7 +57,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
       </Link>
       <div className="mt-2 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">{contact.fullName}</h1>
+          <h1 className="font-display text-[28px] tracking-tight">{contact.fullName}</h1>
           <p className="mt-1 text-muted">
             {[contact.title, companyName].filter(Boolean).join(" · ") || "No title/company"}
           </p>

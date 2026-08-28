@@ -84,7 +84,9 @@ export default async function BulkOutreachPage({
         <Link href="/contacts" className="text-sm text-muted hover:underline">
           ← Contacts
         </Link>
-        <h1 className="mt-2 text-xl font-semibold">Bulk outreach — {contacts.length} selected</h1>
+        <h1 className="font-display mt-2 text-2xl tracking-tight">
+          Bulk outreach: {contacts.length} selected
+        </h1>
         {truncated ? (
           <p className="mt-1 text-sm text-warn">
             Only the first {MAX_BATCH} selected contacts are included in one batch.
@@ -169,8 +171,8 @@ export default async function BulkOutreachPage({
       <Link href="/contacts" className="text-sm text-muted hover:underline">
         ← Contacts
       </Link>
-      <h1 className="mt-2 text-xl font-semibold">
-        Review — {ready.length} ready, {skipped.length} skipped
+      <h1 className="font-display mt-2 text-2xl tracking-tight">
+        Review: {ready.length} ready, {skipped.length} skipped
       </h1>
 
       {skipped.length > 0 ? (

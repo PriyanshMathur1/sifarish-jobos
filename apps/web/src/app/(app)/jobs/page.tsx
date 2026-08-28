@@ -51,7 +51,7 @@ export default async function JobsPage({
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Jobs</h1>
+        <h1 className="font-display text-[28px] tracking-tight">Jobs</h1>
         <p className="text-sm text-muted">
           {total} opening{total === 1 ? "" : "s"} · India market
         </p>

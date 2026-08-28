@@ -12,7 +12,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="max-w-xl">
-      <h1 className="text-xl font-semibold">Profile</h1>
+      <h1 className="font-display text-[28px] tracking-tight">Profile</h1>
       <p className="mt-1 text-sm text-muted">
         Powers search defaults and outreach template variables like{" "}
         <code className="rounded bg-accent-soft px-1">{"{{current_title}}"}</code> and{" "}

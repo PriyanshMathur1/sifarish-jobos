@@ -27,7 +27,7 @@ export default async function AdminPage() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Admin</h1>
+        <h1 className="font-display text-[28px] tracking-tight">Admin</h1>
         <form action={runGlobalRefresh}>
           <button
             type="submit"

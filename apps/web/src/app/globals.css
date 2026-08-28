@@ -9,6 +9,10 @@
   --color-muted: #6f6e69;
   --color-good: #1a7f4b;
   --color-warn: #b3611a;
+
+  /* Display face for page/section headings — loaded via <link> in layout.tsx;
+     body copy stays the system-ui stack below. */
+  --font-display: "Newsreader", Georgia, serif;
 }
 
 html {
@@ -23,4 +27,12 @@ html {
 body {
   background: var(--color-paper);
   color: var(--color-ink);
+}
+
+/* One card treatment, used everywhere — locked so it never drifts per-page. */
+.card-surface {
+  border: 1px solid var(--color-line);
+  background: #fff;
+  border-radius: 0.875rem; /* matches rounded-xl */
+  box-shadow: 0 1px 2px rgba(22, 22, 29, 0.03);
 }
