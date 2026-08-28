@@ -17,7 +17,11 @@ export {
   type FetchOk,
 } from "./fetch/safe-fetcher.ts";
 export { refreshCompany, type RefreshOutcome, type IngestDeps } from "./ingestion/ingest.ts";
-export { orchestrateRefresh, completeFinishedRuns, findMissedSlot } from "./ingestion/orchestrator.ts";
+export {
+  orchestrateRefresh,
+  completeFinishedRuns,
+  findMissedSlot,
+} from "./ingestion/orchestrator.ts";
 export { classifyMarket, type MarketEligibility } from "./market/market-filter.ts";
 export { detectProvider, getProvider, allProviders } from "./providers/registry.ts";
 export type { JobProvider, ProviderId, Detection, NormalizedJob } from "./providers/types.ts";
@@ -28,3 +32,31 @@ export {
   seniorityOf,
   titleSimilarity,
 } from "./taxonomy/taxonomy.ts";
+export {
+  inferEmails,
+  learnPattern,
+  applyPattern,
+  parseName,
+  PATTERNS,
+} from "./contacts/pattern-engine.ts";
+export { EmailValidator, type EmailStatus } from "./contacts/email-validator.ts";
+export {
+  renderTemplate,
+  resolveRelevantSkill,
+  BUILTIN_TEMPLATES,
+} from "./outreach/template-renderer.ts";
+export { encryptToken, decryptToken } from "./outreach/token-crypto.ts";
+export {
+  RealGmailClient,
+  FakeGmailClient,
+  type GmailClient,
+  type TokenBundle,
+} from "./outreach/gmail.ts";
+export {
+  prepareOutreach,
+  approveOutreach,
+  emailHash,
+  type Preview,
+  type PrepareInput,
+} from "./outreach/outreach.ts";
+export { discoverContacts, contactRelevance, type DiscoveredPerson } from "./contacts/discovery.ts";

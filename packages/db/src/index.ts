@@ -7,3 +7,5 @@ export * as usersRepo from "./repo/users.ts";
 export * as profilesRepo from "./repo/profiles.ts";
 export { audit } from "./repo/audit.ts";
 export * as jobsRepo from "./repo/jobs.ts";
+export * as contactsRepo from "./repo/contacts.ts";
+export * as trackerRepo from "./repo/tracker.ts";

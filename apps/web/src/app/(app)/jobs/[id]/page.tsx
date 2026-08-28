@@ -3,7 +3,9 @@ import { z } from "zod";
 import { getDb, jobsRepo } from "@jobos/db";
 import { requireUser } from "@/lib/session";
 import { freshnessLabel } from "@/lib/freshness";
+import Link from "next/link";
 import { saveJob, unsaveJob, hideJob } from "../actions";
+import { markAppliedAction } from "../../tracker/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +82,20 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               {saved ? "Saved ✓" : "Save"}
             </button>
           </form>
+          <form action={markAppliedAction.bind(null, job.id)}>
+            <button
+              type="submit"
+              className="rounded-lg border border-good px-4 py-2 font-medium text-good hover:bg-good hover:text-paper"
+            >
+              Mark applied
+            </button>
+          </form>
+          <Link
+            href={`/outreach/new?job=${job.id}`}
+            className="rounded-lg border border-accent px-4 py-2 font-medium text-accent hover:bg-accent-soft"
+          >
+            Compose outreach
+          </Link>
           <form action={hideJob.bind(null, job.id, undefined)}>
             <button
               type="submit"

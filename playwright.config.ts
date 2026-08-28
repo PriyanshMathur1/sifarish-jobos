@@ -17,6 +17,7 @@ export default defineConfig({
   },
   webServer: {
     command: "pnpm --filter @jobos/web dev",
+    env: { GMAIL_TEST_FAKE: "true" },
     url: "http://localhost:3000/api/health",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

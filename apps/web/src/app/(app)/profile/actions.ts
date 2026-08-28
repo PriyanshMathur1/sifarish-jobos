@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { signOut } from "@/auth";
 import { requireUser } from "@/lib/session";
-import { getDb, profilesRepo, usersRepo, audit } from "@jobos/db";
+import { getDb, profilesRepo, usersRepo, audit, schema } from "@jobos/db";
+import { eq } from "drizzle-orm";
 
 const csv = (s: FormDataEntryValue | null) =>
   String(s ?? "")
@@ -59,4 +60,13 @@ export async function deleteAccount(): Promise<void> {
   await usersRepo.deleteUserAccount(db, userId);
   await signOut({ redirect: false });
   redirect("/signin");
+}
+
+/** Disconnect Gmail (PRD §109): tokens are deleted, not merely flagged. */
+export async function disconnectGmail(): Promise<void> {
+  const { userId } = await requireUser();
+  const db = getDb();
+  await db.delete(schema.emailAccounts).where(eq(schema.emailAccounts.userId, userId));
+  await audit(db, { actorId: userId, action: "gmail.disconnect", subjectType: "email_account" });
+  revalidatePath("/profile");
 }

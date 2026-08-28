@@ -42,7 +42,8 @@ PW_CHROMIUM_PATH=<chromium> pnpm e2e    # omit the var to use downloaded browser
 ## Status
 
 - ✅ Phase 0 — Foundation (auth, db, queue seam, UI shell, CI)
-- ⏳ Phase 1 — Job data (ATS providers, ingestion, search)
-- ⏳ Phase 2 — Outreach core (contacts, email patterns, Gmail drafts, tracker)
+- ✅ Phase 1 — Job data (SafeFetcher, 4 ATS providers, India market filter, ingestion state machine, twice-daily orchestrator, search, admin)
+- ✅ Phase 2 — Outreach core (contacts + provenance, email-pattern engine + honest validation, templates with smart variables, Gmail drafts via OAuth, per-send approval with caps/dedup/suppression, application tracker with snapshots, notes, reminders)
+- ⏳ Next sessions — matching engine + Discover feed, notifications/digests, reply tracking, Tier-2 providers, analytics
 
-See `TICKETS.md` for the full plan and `SPEC.md` for architecture.
+Docs: `SPEC.md` (locked spec) · `TICKETS.md` (plan + review logs) · `ARCHITECTURE.md` · `DATABASE.md` · `DATA_SOURCES.md` · `SECURITY.md` · `PRIVACY.md` · `DEPLOYMENT.md` (Vercel+Neon+domain runbook) · `RUNBOOK.md` · `MATCHING.md` / `ML.md` (deferred-scope notes)

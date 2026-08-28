@@ -1,12 +1,14 @@
 import { getDb, profilesRepo } from "@jobos/db";
 import { requireUser } from "@/lib/session";
-import { updateProfile, deleteAccount } from "./actions";
+import { getGmailStatus } from "@/lib/gmail";
+import { updateProfile, deleteAccount, disconnectGmail } from "./actions";
 
 export const metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
   const { userId } = await requireUser();
   const profile = await profilesRepo.getProfile(getDb(), userId);
+  const gmail = await getGmailStatus(userId);
 
   return (
     <div className="max-w-xl">
@@ -48,7 +50,40 @@ export default async function ProfilePage() {
         </button>
       </form>
 
-      <section className="mt-12 border-t border-line pt-6">
+      <section className="mt-10 border-t border-line pt-6">
+        <h2 className="font-semibold">Gmail</h2>
+        {gmail.connected ? (
+          <div className="mt-2 flex items-center gap-3 text-sm">
+            <span>
+              Connected as <span className="font-mono">{gmail.email}</span> — outreach drafts land
+              in this mailbox.
+            </span>
+            <form action={disconnectGmail}>
+              <button
+                type="submit"
+                className="rounded-lg border border-line px-3 py-1.5 hover:bg-accent-soft"
+              >
+                Disconnect
+              </button>
+            </form>
+          </div>
+        ) : (
+          <div className="mt-2 text-sm text-muted">
+            <p>
+              Connect Gmail so approved outreach becomes a draft in your own mailbox (scope: compose
+              only — JobOS cannot read your email).
+            </p>
+            <a
+              href="/api/gmail/connect"
+              className="mt-2 inline-block rounded-lg bg-ink px-4 py-2 font-medium text-paper hover:opacity-90"
+            >
+              Connect Gmail
+            </a>
+          </div>
+        )}
+      </section>
+
+      <section className="mt-10 border-t border-line pt-6">
         <h2 className="text-sm font-semibold text-warn">Danger zone</h2>
         <p className="mt-1 text-sm text-muted">
           Deleting your account removes your profile, preferences, contacts, outreach history, and

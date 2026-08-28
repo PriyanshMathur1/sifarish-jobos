@@ -6,8 +6,10 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { getDb, closeDb } from "./client.ts";
 import * as schema from "./schema/index.ts";
+import { eq } from "drizzle-orm";
 import { users, profiles, candidatePreferences, companies, jobs } from "./schema/index.ts";
 import { COMPANY_SEEDS, JOB_SEEDS } from "./seed-data.ts";
+import { BUILTIN_TEMPLATE_SEEDS } from "./seed-templates.ts";
 import { createHash } from "node:crypto";
 
 /**
@@ -88,6 +90,16 @@ async function seedInto(db: SeedDb): Promise<void> {
       })
       .returning({ id: companies.id, name: companies.name });
     if (row) companyIdByName.set(row.name, row.id);
+  }
+
+  // Built-in outreach templates (PRD §77) — idempotent by (kind, isBuiltin).
+  for (const t of BUILTIN_TEMPLATE_SEEDS) {
+    const existing = await db
+      .select({ id: schema.templates.id })
+      .from(schema.templates)
+      .where(eq(schema.templates.kind, t.kind));
+    if (existing.some(Boolean)) continue;
+    await db.insert(schema.templates).values({ ...t, isBuiltin: true, userId: null });
   }
 
   // Offline dev jobs (PRD §129) — clearly marked; a live refresh supersedes.

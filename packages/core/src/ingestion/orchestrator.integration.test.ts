@@ -102,8 +102,14 @@ describe("orchestrateRefresh", () => {
 
     await completeFinishedRuns(db as never);
 
-    const [p] = await db.select().from(schema.refreshRuns).where(eq(schema.refreshRuns.id, pending!.id));
-    const [d] = await db.select().from(schema.refreshRuns).where(eq(schema.refreshRuns.id, done!.id));
+    const [p] = await db
+      .select()
+      .from(schema.refreshRuns)
+      .where(eq(schema.refreshRuns.id, pending!.id));
+    const [d] = await db
+      .select()
+      .from(schema.refreshRuns)
+      .where(eq(schema.refreshRuns.id, done!.id));
     expect(p!.status).toBe("RUNNING");
     expect(d!.status).toBe("COMPLETED");
   });

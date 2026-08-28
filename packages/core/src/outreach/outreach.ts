@@ -1,0 +1,248 @@
+import { createHash } from "node:crypto";
+import { and, eq, gte, sql } from "drizzle-orm";
+import type { Db } from "@jobos/db";
+import { schema } from "@jobos/db";
+import { type Result, ok, err } from "../result.ts";
+import { renderTemplate, resolveRelevantSkill } from "./template-renderer.ts";
+import type { GmailClient } from "./gmail.ts";
+import { logger } from "../logger.ts";
+
+/**
+ * Outreach service (SPEC §2): prepare → (user edits) → approve, one message
+ * at a time. There is deliberately NO bulk primitive here (PRD §157) — the
+ * interface cannot express a mass send.
+ *
+ * approve() persists the message BEFORE talking to Gmail: a Gmail failure
+ * marks the row FAILED with the error, and the text is never lost (PRD §123).
+ */
+
+export interface PrepareInput {
+  contactId: string;
+  jobId?: string;
+  templateId: string;
+  /** User-supplied values for variables the resolver couldn't fill. */
+  overrides?: Record<string, string>;
+}
+
+export interface Preview {
+  contactId: string;
+  jobId: string | null;
+  templateId: string;
+  toEmail: string;
+  subject: string;
+  body: string;
+}
+
+export type PrepareError =
+  | { kind: "not_found"; what: string }
+  | { kind: "suppressed" }
+  | { kind: "no_email" }
+  | { kind: "missing_vars"; missing: string[] };
+
+export const emailHash = (email: string) =>
+  createHash("sha256").update(email.trim().toLowerCase()).digest("hex");
+
+export async function prepareOutreach(
+  db: Db,
+  userId: string,
+  input: PrepareInput,
+): Promise<Result<Preview, PrepareError>> {
+  const [contact] = await db
+    .select()
+    .from(schema.contacts)
+    .where(and(eq(schema.contacts.id, input.contactId), eq(schema.contacts.userId, userId)));
+  if (!contact) return err({ kind: "not_found", what: "contact" });
+  if (contact.suppressedAt) return err({ kind: "suppressed" });
+  if (!contact.businessEmail) return err({ kind: "no_email" });
+
+  const [template] = await db
+    .select()
+    .from(schema.templates)
+    .where(
+      and(
+        eq(schema.templates.id, input.templateId),
+        sql`(${schema.templates.userId} = ${userId} or ${schema.templates.isBuiltin} = true)`,
+      ),
+    );
+  if (!template) return err({ kind: "not_found", what: "template" });
+
+  let job: typeof schema.jobs.$inferSelect | null = null;
+  let jobCompanyName: string | null = null;
+  if (input.jobId) {
+    const [row] = await db
+      .select({ job: schema.jobs, companyName: schema.companies.name })
+      .from(schema.jobs)
+      .innerJoin(schema.companies, eq(schema.jobs.companyId, schema.companies.id))
+      .where(eq(schema.jobs.id, input.jobId));
+    if (!row) return err({ kind: "not_found", what: "job" });
+    job = row.job;
+    jobCompanyName = row.companyName;
+  }
+
+  const [profile] = await db
+    .select()
+    .from(schema.profiles)
+    .where(eq(schema.profiles.userId, userId));
+
+  let contactCompanyName: string | null = null;
+  if (contact.companyId) {
+    const [c] = await db
+      .select({ name: schema.companies.name })
+      .from(schema.companies)
+      .where(eq(schema.companies.id, contact.companyId));
+    contactCompanyName = c?.name ?? null;
+  }
+
+  const relevantSkill =
+    profile && job
+      ? resolveRelevantSkill(profile.skills, `${job.title} ${job.descriptionText ?? ""}`)
+      : null;
+
+  const context: Record<string, string | undefined> = {
+    first_name: contact.fullName.trim().split(/\s+/)[0],
+    company: jobCompanyName ?? contactCompanyName ?? undefined,
+    job_title: job?.title,
+    candidate_name: profile?.fullName ?? undefined,
+    current_title: profile?.currentTitle ?? undefined,
+    relevant_skill: relevantSkill ?? undefined,
+    ...input.overrides,
+  };
+
+  const rendered = renderTemplate({ subject: template.subject, body: template.body }, context);
+  if (!rendered.ok) return err({ kind: "missing_vars", missing: rendered.error.missing });
+
+  return ok({
+    contactId: contact.id,
+    jobId: job?.id ?? null,
+    templateId: template.id,
+    toEmail: contact.businessEmail,
+    subject: rendered.value.subject,
+    body: rendered.value.body,
+  });
+}
+
+export interface ApproveDeps {
+  db: Db;
+  gmail: GmailClient;
+  directSendEnabled: boolean;
+  dailySendCap: number;
+}
+
+export type ApproveError =
+  | { kind: "suppressed" }
+  | { kind: "duplicate_recipient"; daysAgo: number }
+  | { kind: "send_disabled" }
+  | { kind: "cap_reached"; cap: number }
+  | { kind: "gmail_failed"; detail: string };
+
+export interface ApproveResult {
+  outreachId: string;
+  status: "DRAFTED" | "SENT" | "FAILED";
+}
+
+const DEDUP_DAYS = 14;
+
+export async function approveOutreach(
+  deps: ApproveDeps,
+  userId: string,
+  preview: Preview,
+  mode: "draft" | "send",
+): Promise<Result<ApproveResult, ApproveError>> {
+  const { db } = deps;
+
+  // Suppression (PRD §75) — checked at send time too, not just discovery.
+  const [suppressed] = await db
+    .select({ id: schema.contactSuppressions.id })
+    .from(schema.contactSuppressions)
+    .where(eq(schema.contactSuppressions.emailHash, emailHash(preview.toEmail)));
+  if (suppressed) return err({ kind: "suppressed" });
+
+  // Recipient dedup (PRD §80): one message per recipient per window.
+  const [recent] = await db
+    .select({ createdAt: schema.outreachMessages.createdAt })
+    .from(schema.outreachMessages)
+    .where(
+      and(
+        eq(schema.outreachMessages.userId, userId),
+        eq(schema.outreachMessages.toEmail, preview.toEmail),
+        gte(
+          schema.outreachMessages.createdAt,
+          sql`now() - interval '${sql.raw(String(DEDUP_DAYS))} days'`,
+        ),
+        sql`${schema.outreachMessages.status} in ('DRAFTED','SENT','REPLIED')`,
+      ),
+    );
+  if (recent) {
+    const daysAgo = Math.floor((Date.now() - recent.createdAt.getTime()) / 86_400_000);
+    return err({ kind: "duplicate_recipient", daysAgo });
+  }
+
+  if (mode === "send") {
+    if (!deps.directSendEnabled) return err({ kind: "send_disabled" });
+    const [{ count }] = (await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.outreachMessages)
+      .where(
+        and(
+          eq(schema.outreachMessages.userId, userId),
+          eq(schema.outreachMessages.status, "SENT"),
+          gte(schema.outreachMessages.sentAt, sql`date_trunc('day', now())`),
+        ),
+      )) as [{ count: number }];
+    if (count >= deps.dailySendCap) return err({ kind: "cap_reached", cap: deps.dailySendCap });
+  }
+
+  // Persist BEFORE Gmail — the message text must never be lost.
+  const [row] = await db
+    .insert(schema.outreachMessages)
+    .values({
+      userId,
+      contactId: preview.contactId,
+      jobId: preview.jobId,
+      templateId: preview.templateId,
+      toEmail: preview.toEmail,
+      subject: preview.subject,
+      body: preview.body,
+      mode,
+      status: "PREPARED",
+    })
+    .returning({ id: schema.outreachMessages.id });
+  const outreachId = row!.id;
+
+  const email = { to: preview.toEmail, subject: preview.subject, body: preview.body };
+  const result =
+    mode === "draft" ? await deps.gmail.createDraft(email) : await deps.gmail.send(email);
+
+  if (!result.ok) {
+    await db
+      .update(schema.outreachMessages)
+      .set({ status: "FAILED", error: JSON.stringify(result.error) })
+      .where(eq(schema.outreachMessages.id, outreachId));
+    logger.warn({ outreachId, error: result.error }, "gmail call failed — message preserved");
+    return err({ kind: "gmail_failed", detail: result.error.kind });
+  }
+
+  const update =
+    mode === "draft"
+      ? { status: "DRAFTED" as const, gmailDraftId: (result.value as { draftId: string }).draftId }
+      : {
+          status: "SENT" as const,
+          sentAt: new Date(),
+          gmailThreadId: (result.value as { threadId: string }).threadId,
+        };
+  await db
+    .update(schema.outreachMessages)
+    .set(update)
+    .where(eq(schema.outreachMessages.id, outreachId));
+
+  // Behaviour signal + CRM bump (PRD §51, §83).
+  if (preview.jobId) {
+    await db.insert(schema.userJobEvents).values({ userId, jobId: preview.jobId, type: "CONTACT" });
+    await db
+      .insert(schema.applications)
+      .values({ userId, jobId: preview.jobId, status: "CONTACTED" })
+      .onConflictDoNothing();
+  }
+
+  return ok({ outreachId, status: update.status });
+}
