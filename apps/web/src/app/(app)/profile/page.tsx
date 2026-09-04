@@ -29,8 +29,21 @@ const STARTER_QUESTIONS = [
   "Where did you hear about this role?",
 ];
 
-export default async function ProfilePage() {
+const RESUME_NOTICE: Record<string, { tone: "good" | "warn"; text: string }> = {
+  saved: { tone: "good", text: "Resume saved." },
+  missing: { tone: "warn", text: "Choose a PDF file first." },
+  not_pdf: { tone: "warn", text: "Only PDF resumes are accepted. Export your resume as PDF and try again." },
+  too_large: { tone: "warn", text: "That file is over 5 MB. Compress it or export a lighter PDF." },
+};
+
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { userId } = await requireUser();
+  const sp = await searchParams;
+  const resumeNotice = typeof sp.resume === "string" ? RESUME_NOTICE[sp.resume] : undefined;
   const db = getDb();
   const [profile, prefs, resumes, answers, gmail, alertPrefs] = await Promise.all([
     profilesRepo.getProfile(db, userId),
@@ -206,7 +219,13 @@ export default async function ProfilePage() {
         </form>
       </Section>
 
+      <div id="resumes" />
       <Section title="Resumes" body="PDF only, 5 MB max. The default is what gets attached unless a job picks another.">
+        {resumeNotice ? (
+          <p className={`mb-3 rounded-lg border bg-white px-3 py-2 text-sm ${resumeNotice.tone === "good" ? "border-good/40 text-good" : "border-warn/40 text-warn"}`}>
+            {resumeNotice.text}
+          </p>
+        ) : null}
         {resumes.length > 0 ? (
           <ul className="mb-4 flex flex-col gap-2">
             {resumes.map((r) => (

@@ -135,23 +135,31 @@ export async function updatePreferences(formData: FormData): Promise<void> {
 
 const ALLOWED_RESUME_MIME = new Set(["application/pdf"]);
 
+/**
+ * Resume upload. Validation problems come back as a message on the page,
+ * never as a crash: an empty label means "Default", a non-PDF or oversized
+ * file is refused with a reason.
+ */
 export async function uploadResume(formData: FormData): Promise<void> {
   const { userId } = await requireUser();
   const file = formData.get("file");
-  const label = z.string().trim().min(1).max(60).parse(String(formData.get("label") ?? "Default"));
-  if (!(file instanceof File) || file.size === 0) return;
-  if (!ALLOWED_RESUME_MIME.has(file.type)) throw new Error("Only PDF resumes are accepted");
-  if (file.size > RESUME_MAX_BYTES) throw new Error("Resume must be 5 MB or smaller");
+  const rawLabel = String(formData.get("label") ?? "").trim().slice(0, 60);
+  const label = rawLabel || "Default";
+  if (!(file instanceof File) || file.size === 0) redirect("/profile?resume=missing#resumes");
+  const isPdf = ALLOWED_RESUME_MIME.has(file.type) || /\.pdf$/i.test(file.name);
+  if (!isPdf) redirect("/profile?resume=not_pdf#resumes");
+  if (file.size > RESUME_MAX_BYTES) redirect("/profile?resume=too_large#resumes");
 
   const content = Buffer.from(await file.arrayBuffer());
   await profilesRepo.addResume(getDb(), userId, {
     label,
     fileName: file.name.slice(0, 200),
-    mime: file.type,
+    mime: "application/pdf",
     content,
   });
   await audit(getDb(), { actorId: userId, action: "resume.upload", subjectType: "resume" });
   revalidatePath("/profile");
+  redirect("/profile?resume=saved#resumes");
 }
 
 export async function setDefaultResume(resumeId: string): Promise<void> {
