@@ -14,6 +14,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@sifarish/core", "@sifarish/db"],
+  // Resume uploads go through a server action (5 MB cap enforced in the action too).
+  experimental: { serverActions: { bodySizeLimit: "6mb" } },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

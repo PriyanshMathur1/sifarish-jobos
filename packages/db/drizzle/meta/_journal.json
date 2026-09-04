@@ -43,6 +43,13 @@
       "when": 1788537673240,
       "tag": "0005_matching",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788537868816,
+      "tag": "0006_profile-v2",
+      "breakpoints": true
     }
   ]
 }
