@@ -93,9 +93,13 @@ export async function prepareOutreach(
     contactCompanyName = c?.name ?? null;
   }
 
+  // Highest-priority skill the JD mentions; when it names none, the
+  // candidate's own top skill (still their real skill, never invented).
   const relevantSkill =
     profile && job
-      ? resolveRelevantSkill(profile.skills, `${job.title} ${job.descriptionText ?? ""}`)
+      ? (resolveRelevantSkill(profile.skills, `${job.title} ${job.descriptionText ?? ""}`) ??
+        profile.skills[0] ??
+        null)
       : null;
 
   const context: Record<string, string | undefined> = {
