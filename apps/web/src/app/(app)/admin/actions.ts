@@ -75,3 +75,21 @@ export async function toggleCompanyStatus(companyId: string): Promise<void> {
   });
   revalidatePath("/admin");
 }
+
+/** Watch tier = refreshed on every ticker call (15 min) instead of hourly. */
+export async function toggleCompanyPriority(companyId: string): Promise<void> {
+  const { userId } = await requireAdmin();
+  const id = z.string().uuid().parse(companyId);
+  const db = getDb();
+  const [c] = await db.select().from(schema.companies).where(eq(schema.companies.id, id));
+  if (!c) return;
+  const next = c.priority === "watch" ? "normal" : "watch";
+  await db.update(schema.companies).set({ priority: next }).where(eq(schema.companies.id, id));
+  await audit(db, {
+    actorId: userId,
+    action: `admin.company.priority.${next}`,
+    subjectType: "company",
+    subjectId: id,
+  });
+  revalidatePath("/admin");
+}

@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { getDb, jobsRepo } from "@sifarish/db";
+import { getDb, jobsRepo, matchesRepo } from "@sifarish/db";
 import { requireUser } from "@/lib/session";
 import { freshnessLabel } from "@/lib/freshness";
 import Link from "next/link";
 import { saveJob, unsaveJob, hideJob } from "../actions";
 import { markAppliedAction } from "../../tracker/actions";
 import { ExternalLinkIcon, CheckIcon } from "@/components/icons";
+import { MatchBadge } from "@/components/match-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const { job, companyName, companyIndustry, saved } = row;
 
   // OPEN event (PRD §51) — deduped hourly so revalidations don't inflate it.
-  await jobsRepo.recordOpenOnce(db, userId, job.id);
+  const [match] = await Promise.all([
+    matchesRepo.matchForJob(db, userId, job.id),
+    jobsRepo.recordOpenOnce(db, userId, job.id),
+  ]);
 
   const meta = [job.locations.join(" · ") || null, job.remoteType, job.employmentType]
     .filter(Boolean)
@@ -109,6 +113,29 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           </form>
         </div>
       </header>
+
+      {match ? (
+        <section aria-label="Match" className="mt-6 rounded-xl border border-line bg-white p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <MatchBadge score={match.score} band={match.band} />
+            <span className="text-xs text-muted">
+              title {match.parts.title}/35 · skills {match.parts.skills}/30 · seniority{" "}
+              {match.parts.seniority}/15 · location {match.parts.location}/10 · freshness{" "}
+              {match.parts.freshness}/10
+            </span>
+          </div>
+          <ul className="mt-2 flex flex-col gap-0.5 text-sm">
+            {match.reasons.map((r) => (
+              <li key={r} className={match.gate ? "text-warn" : ""}>
+                {r}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-muted">
+            Scored from your <Link href="/profile" className="underline">profile and preferences</Link>. Change them and every score updates.
+          </p>
+        </section>
+      ) : null}
 
       <hr className="my-6 border-line" />
 

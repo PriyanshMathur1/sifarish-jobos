@@ -63,6 +63,45 @@ export async function orchestrateRefresh(
 }
 
 /**
+ * Tiered tick (Autopilot A1): refresh one priority tier without opening a
+ * refresh_runs row. The external ticker calls this every 15 min for "watch"
+ * and hourly for "normal"; the twice-daily scheduled run stays the full
+ * reconcile. Singleton key per company per time bucket, so an overlapping
+ * ticker call is a no-op instead of a double crawl.
+ */
+export async function tickRefresh(
+  db: Db,
+  queue: Queue,
+  tier: "watch" | "normal",
+  now: Date = new Date(),
+): Promise<{ companies: number }> {
+  const bucketMinutes = tier === "watch" ? 15 : 60;
+  const bucket = Math.floor(now.getTime() / (bucketMinutes * 60_000));
+  const eligible = await db
+    .select({ id: schema.companies.id })
+    .from(schema.companies)
+    .where(
+      and(
+        eq(schema.companies.status, "ACTIVE"),
+        eq(schema.companies.priority, tier),
+        sql`(${schema.companies.consecutiveFailures} < ${BREAK_THRESHOLD}
+             or ${schema.companies.lastCheckedAt} < now() - interval '${sql.raw(String(BREAK_COOLDOWN_HOURS))} hours')`,
+      ),
+    )
+    .orderBy(sql`${schema.companies.lastCheckedAt} asc nulls first`);
+
+  for (const c of eligible) {
+    await queue.enqueue(
+      QUEUES.refreshCompany,
+      { companyId: c.id, runId: null },
+      { singletonKey: `${c.id}:tick:${tier}:${bucket}` },
+    );
+  }
+  logger.info({ tier, companies: eligible.length }, "tier tick fanned out");
+  return { companies: eligible.length };
+}
+
+/**
  * Complete every RUNNING run whose fan-out has been fully processed
  * (companiesProcessed >= companiesTotal). Safe to call from any mode —
  * a run still being drained elsewhere is left RUNNING.

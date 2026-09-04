@@ -177,6 +177,7 @@ export async function listCompanies(db: Db) {
       industry: companies.industry,
       atsProvider: companies.atsProvider,
       status: companies.status,
+      priority: companies.priority,
       lastSuccessfulCheckAt: companies.lastSuccessfulCheckAt,
       openJobs: sql<number>`(select count(*)::int from jobs j where j.company_id = ${companies.id} and j.status = 'ACTIVE')`,
     })

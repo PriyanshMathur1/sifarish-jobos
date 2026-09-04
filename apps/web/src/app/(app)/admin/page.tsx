@@ -1,7 +1,7 @@
 import { desc, sql } from "drizzle-orm";
 import { getDb, schema, jobsRepo } from "@sifarish/db";
 import { requireAdmin } from "@/lib/session";
-import { runGlobalRefresh, refreshOneCompany, toggleCompanyStatus } from "./actions";
+import { runGlobalRefresh, refreshOneCompany, toggleCompanyStatus, toggleCompanyPriority } from "./actions";
 
 export const metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
@@ -64,6 +64,7 @@ export default async function AdminPage() {
                 <th className="px-3 py-2">Open jobs</th>
                 <th className="px-3 py-2">Last success</th>
                 <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Tier</th>
                 <th className="px-3 py-2" />
               </tr>
             </thead>
@@ -82,6 +83,19 @@ export default async function AdminPage() {
                     <span className={c.status === "ACTIVE" ? "text-good" : "text-warn"}>
                       {c.status}
                     </span>
+                  </td>
+                  <td className="px-3 py-2">
+                    <form action={toggleCompanyPriority.bind(null, c.id)}>
+                      <button
+                        type="submit"
+                        title={c.priority === "watch" ? "Refreshed every 15 minutes. Click for hourly." : "Refreshed hourly. Click to watch every 15 minutes."}
+                        className={`rounded border px-2 py-1 text-xs ${
+                          c.priority === "watch" ? "border-accent bg-accent-soft text-accent" : "border-line hover:bg-accent-soft"
+                        }`}
+                      >
+                        {c.priority === "watch" ? "Watching" : "Hourly"}
+                      </button>
+                    </form>
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex gap-1">

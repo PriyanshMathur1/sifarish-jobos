@@ -50,6 +50,13 @@
       "when": 1788537868816,
       "tag": "0006_profile-v2",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788538214275,
+      "tag": "0007_alerts-tiers",
+      "breakpoints": true
     }
   ]
 }

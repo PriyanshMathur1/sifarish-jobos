@@ -12,7 +12,11 @@ import {
   deleteAnswer,
   deleteAccount,
   disconnectGmail,
+  updateAlertPreferences,
+  detectTelegramChat,
+  sendTestDigest,
 } from "./actions";
+import { loadConfig } from "@sifarish/core";
 
 export const metadata = { title: "Profile" };
 export const dynamic = "force-dynamic";
@@ -28,13 +32,16 @@ const STARTER_QUESTIONS = [
 export default async function ProfilePage() {
   const { userId } = await requireUser();
   const db = getDb();
-  const [profile, prefs, resumes, answers, gmail] = await Promise.all([
+  const [profile, prefs, resumes, answers, gmail, alertPrefs] = await Promise.all([
     profilesRepo.getProfile(db, userId),
     profilesRepo.getPreferences(db, userId),
     profilesRepo.listResumes(db, userId),
     profilesRepo.listAnswers(db, userId),
     getGmailStatus(userId),
+    profilesRepo.getAlertPreferences(db, userId),
   ]);
+  const config = loadConfig();
+  const channels = { email: Boolean(config.SMTP_URL), telegram: Boolean(config.TELEGRAM_BOT_TOKEN) };
 
   const answeredKeys = new Set(answers.map((a) => a.questionKey));
   const starters = STARTER_QUESTIONS.filter((q) => !answeredKeys.has(profilesRepo.questionKey(q)));
@@ -297,6 +304,71 @@ export default async function ProfilePage() {
         </form>
       </Section>
 
+      <Section
+        title="Alerts"
+        body="Instant pings when a new opening clears the bar, plus one digest a day. Channels available depend on what the server has configured."
+      >
+        <form action={updateAlertPreferences} className="flex flex-col gap-4">
+          <label className="flex flex-col gap-1 text-sm font-medium">
+            Channel
+            <select
+              name="channel"
+              defaultValue={alertPrefs?.channel ?? "email"}
+              className="rounded-lg border border-line bg-white px-3 py-2 font-normal"
+            >
+              <option value="email">Email{channels.email ? "" : " (SMTP not configured)"}</option>
+              <option value="telegram">Telegram{channels.telegram ? "" : " (bot token not configured)"}</option>
+              <option value="none">Off</option>
+            </select>
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2 rounded-lg border border-line bg-white p-3 text-sm">
+              <Check name="instantEnabled" label="Instant alerts" defaultChecked={alertPrefs?.instantEnabled ?? true} />
+              <BandSelect name="instantMinBand" label="for matches at least" defaultValue={alertPrefs?.instantMinBand ?? "strong"} />
+            </div>
+            <div className="flex flex-col gap-2 rounded-lg border border-line bg-white p-3 text-sm">
+              <Check name="digestEnabled" label="Daily digest" defaultChecked={alertPrefs?.digestEnabled ?? true} />
+              <BandSelect name="digestMinBand" label="for matches at least" defaultValue={alertPrefs?.digestMinBand ?? "good"} />
+              <label className="flex items-center gap-2">
+                at
+                <input
+                  name="digestHour"
+                  type="number"
+                  min={0}
+                  max={23}
+                  defaultValue={alertPrefs?.digestHour ?? 9}
+                  className="w-16 rounded-lg border border-line bg-white px-2 py-1 font-normal"
+                />
+                :00 IST
+              </label>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <Field
+              label="Telegram chat id"
+              name="telegramChatId"
+              defaultValue={alertPrefs?.telegramChatId ?? ""}
+              placeholder="Detect it after messaging the bot"
+            />
+            <SaveButton>Save alerts</SaveButton>
+          </div>
+        </form>
+        <div className="mt-3 flex flex-wrap gap-2 text-sm">
+          {channels.telegram ? (
+            <form action={detectTelegramChat}>
+              <button type="submit" className="rounded-lg border border-line px-3 py-1.5 hover:bg-accent-soft">
+                Detect my Telegram chat (send the bot any message first)
+              </button>
+            </form>
+          ) : null}
+          <form action={sendTestDigest}>
+            <button type="submit" className="rounded-lg border border-line px-3 py-1.5 hover:bg-accent-soft">
+              Send a test digest now
+            </button>
+          </form>
+        </div>
+      </Section>
+
       <section className="mt-10 border-t border-line pt-6">
         <h2 className="font-semibold">Gmail</h2>
         {gmail.connected ? (
@@ -367,6 +439,19 @@ function SaveButton({ children }: { children: React.ReactNode }) {
     >
       {children}
     </button>
+  );
+}
+
+function BandSelect({ name, label, defaultValue }: { name: string; label: string; defaultValue: string }) {
+  return (
+    <label className="flex items-center gap-2">
+      {label}
+      <select name={name} defaultValue={defaultValue} className="rounded-lg border border-line bg-white px-2 py-1 font-normal">
+        <option value="strong">Strong</option>
+        <option value="good">Good</option>
+        <option value="maybe">Maybe</option>
+      </select>
+    </label>
   );
 }
 

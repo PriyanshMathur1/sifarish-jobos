@@ -11,12 +11,14 @@ export async function saveJob(jobId: string): Promise<void> {
   const { userId } = await requireUser();
   await jobsRepo.recordJobEvent(getDb(), userId, idSchema.parse(jobId), "SAVE");
   revalidatePath("/jobs");
+  revalidatePath("/feed");
 }
 
 export async function unsaveJob(jobId: string): Promise<void> {
   const { userId } = await requireUser();
   await jobsRepo.recordJobEvent(getDb(), userId, idSchema.parse(jobId), "UNSAVE");
   revalidatePath("/jobs");
+  revalidatePath("/feed");
 }
 
 const hideReason = z
@@ -43,4 +45,5 @@ export async function hideJob(jobId: string, reason?: string): Promise<void> {
     hideReason.parse(reason || undefined),
   );
   revalidatePath("/jobs");
+  revalidatePath("/feed");
 }

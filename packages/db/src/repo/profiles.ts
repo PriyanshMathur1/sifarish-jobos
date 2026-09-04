@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import type { Db } from "../client.ts";
-import { answerBank, candidatePreferences, profiles, resumes } from "../schema/index.ts";
+import { alertPreferences, answerBank, candidatePreferences, profiles, resumes } from "../schema/index.ts";
 
 export interface ProfileInput {
   fullName: string | null;
@@ -220,4 +220,35 @@ export async function upsertAnswer(
 
 export async function deleteAnswer(db: Db, userId: string, answerId: string): Promise<void> {
   await db.delete(answerBank).where(and(eq(answerBank.userId, userId), eq(answerBank.id, answerId)));
+}
+
+// ── Alert preferences ───────────────────────────────────────────
+
+export interface AlertPreferencesInput {
+  channel: "email" | "telegram" | "none";
+  instantEnabled: boolean;
+  instantMinBand: "strong" | "good" | "maybe";
+  digestEnabled: boolean;
+  digestMinBand: "strong" | "good" | "maybe";
+  digestHour: number;
+  telegramChatId: string | null;
+}
+
+export async function getAlertPreferences(db: Db, userId: string) {
+  const [row] = await db
+    .select()
+    .from(alertPreferences)
+    .where(eq(alertPreferences.userId, userId));
+  return row ?? null;
+}
+
+export async function upsertAlertPreferences(
+  db: Db,
+  userId: string,
+  input: AlertPreferencesInput,
+): Promise<void> {
+  await db
+    .insert(alertPreferences)
+    .values({ userId, ...input })
+    .onConflictDoUpdate({ target: alertPreferences.userId, set: { ...input } });
 }

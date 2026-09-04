@@ -39,6 +39,8 @@ const envSchema = z.object({
   TOKEN_ENCRYPTION_KEY: z.string().length(64).optional(), // 32 bytes hex
   SMTP_URL: z.string().optional(),
   HUNTER_API_KEY: z.string().optional(), // free-tier email finder/verifier, single-contact lookups only
+  TELEGRAM_BOT_TOKEN: z.string().optional(), // alerts via a personal bot (BotFather)
+  NOTIFY_FROM: z.string().optional(), // From: for SMTP alerts; defaults to "Sifarish <no-reply@APP_URL host>"
 
   // Feature flags (PRD §130)
   CONTACT_DISCOVERY: bool,

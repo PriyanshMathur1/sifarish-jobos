@@ -41,6 +41,8 @@ export const companies = pgTable(
     status: text("status", { enum: ["ACTIVE", "PAUSED", "UNSUPPORTED"] })
       .notNull()
       .default("ACTIVE"),
+    /** Refresh tier (Autopilot A1): watch = every ticker call, normal = hourly. */
+    priority: text("priority", { enum: ["watch", "normal"] }).notNull().default("normal"),
     detectionConfidence: text("detection_confidence", { enum: ["high", "medium", "low"] }),
     /** Consecutive failed checks — persistent circuit-break input (PRD §97). */
     consecutiveFailures: integer("consecutive_failures").notNull().default(0),

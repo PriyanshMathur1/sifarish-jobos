@@ -3,6 +3,7 @@ import { signOut } from "@/auth";
 import { requireUser, isAdmin } from "@/lib/session";
 
 const nav = [
+  { href: "/feed", label: "For you" },
   { href: "/jobs", label: "Jobs" },
   { href: "/contacts", label: "Contacts" },
   { href: "/outreach", label: "Outreach" },
@@ -18,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen pb-16 sm:pb-0">
       <header className="sticky top-0 z-10 border-b border-line bg-paper/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3">
-          <Link href="/jobs" className="font-display text-lg tracking-tight">
+          <Link href="/feed" className="font-display text-lg tracking-tight">
             Sifarish
           </Link>
           <nav className="hidden gap-1 sm:flex" aria-label="Primary">

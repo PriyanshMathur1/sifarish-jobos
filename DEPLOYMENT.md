@@ -29,3 +29,26 @@ Target (grill G7/G8): Vercel Hobby (app + 2 cron jobs) + Neon free Postgres, on 
 
 - Serverless drain processes up to 500 company refreshes per cron hit (maxDuration 300s); 18 seed companies complete in well under a minute.
 - The app boots with every optional var absent — Gmail/SMTP/discovery features simply report themselves unconfigured.
+
+
+## Autopilot ticker (GitHub Actions)
+
+Vercel Hobby crons fire at most daily, so the 15-minute "watch" and hourly
+"normal" refresh ticks come from `.github/workflows/ticker.yml`. Set two
+repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret                 | Value                                        |
+| ---------------------- | -------------------------------------------- |
+| `SIFARISH_APP_URL`     | `https://sifarish.priyanshmathur.com`        |
+| `SIFARISH_CRON_SECRET` | the same `CRON_SECRET` set in Vercel env     |
+
+The workflow POSTs `/api/cron/refresh?tier=watch` every 15 minutes and
+`?tier=normal` hourly. The two Vercel crons keep running the full reconcile
+(with `refresh_runs` accounting and missed-run recovery). Mark companies as
+"Watching" on the Admin page to put them in the 15-minute tier. "Run
+workflow" in the Actions tab triggers a tick by hand (`tier=full` runs the
+reconcile path).
+
+Alerts go out on every call: instant alerts for new jobs at or above the
+user's band, and the daily digest once its hour (APP_TZ) has passed. Channels
+need `SMTP_URL` (email) or `TELEGRAM_BOT_TOKEN` (Telegram) in Vercel env.

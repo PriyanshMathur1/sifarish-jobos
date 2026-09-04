@@ -12,7 +12,7 @@ const proofPoints = [
 
 export default async function SignInPage() {
   const session = await auth();
-  if (session?.user) redirect("/jobs");
+  if (session?.user) redirect("/feed");
 
   const googleEnabled = Boolean(process.env.AUTH_GOOGLE_ID);
 
@@ -74,7 +74,7 @@ export default async function SignInPage() {
               className="mt-8"
               action={async () => {
                 "use server";
-                await signIn("google", { redirectTo: "/jobs" });
+                await signIn("google", { redirectTo: "/feed" });
               }}
             >
               <button
@@ -112,7 +112,7 @@ export default async function SignInPage() {
               "use server";
               const { z } = await import("zod");
               const email = z.string().email().max(320).parse(formData.get("email"));
-              await signIn("nodemailer", { email, redirectTo: "/jobs" });
+              await signIn("nodemailer", { email, redirectTo: "/feed" });
             }}
             className="flex flex-col gap-2"
           >

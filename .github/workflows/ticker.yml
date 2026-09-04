@@ -1,0 +1,50 @@
+# External refresh ticker (AUTOPILOT-PLAN A1). Vercel Hobby crons run at most
+# daily, so GitHub Actions drives the frequent ticks instead. Each call hits
+# the same drain endpoint the Vercel crons use.
+#
+# Secrets to set in the repo (Settings → Secrets → Actions):
+#   SIFARISH_APP_URL     e.g. https://sifarish.priyanshmathur.com
+#   SIFARISH_CRON_SECRET the CRON_SECRET value from Vercel env
+#
+# GitHub schedules can lag by several minutes under load; that is fine for
+# a 15-minute tier. Runs on the default branch only.
+name: ticker
+
+on:
+  schedule:
+    - cron: "*/15 * * * *" # watch tier
+    - cron: "7 * * * *" # normal tier, hourly at :07
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: "watch | normal | full"
+        default: "watch"
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Decide tier
+        id: tier
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tier=${{ github.event.inputs.tier }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "7 * * * *" ]; then
+            echo "tier=normal" >> "$GITHUB_OUTPUT"
+          else
+            echo "tier=watch" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Call refresh endpoint
+        env:
+          APP_URL: ${{ secrets.SIFARISH_APP_URL }}
+          CRON_SECRET: ${{ secrets.SIFARISH_CRON_SECRET }}
+          TIER: ${{ steps.tier.outputs.tier }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "SIFARISH_APP_URL / SIFARISH_CRON_SECRET secrets not set"; exit 1
+          fi
+          if [ "$TIER" = "full" ]; then QS=""; else QS="?tier=$TIER"; fi
+          curl --fail-with-body --silent --show-error --max-time 300 \
+            -X POST "$APP_URL/api/cron/refresh$QS" \
+            -H "Authorization: Bearer $CRON_SECRET"

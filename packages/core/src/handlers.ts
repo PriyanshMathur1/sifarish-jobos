@@ -8,6 +8,8 @@ import { orchestrateRefresh, findMissedSlot } from "./ingestion/orchestrator.ts"
 import { logger } from "./logger.ts";
 import { recomputeForCompany, recomputeForUser } from "./matching/recompute.ts";
 import { matchesRepo } from "@sifarish/db";
+import { buildNotifier } from "./notify/build.ts";
+import { dispatchDigest, dispatchInstant } from "./notify/alerts.ts";
 
 export type HandlerMode = "worker" | "drain";
 
@@ -26,6 +28,7 @@ export function registerHandlers(
 ): void {
   const db = getDb();
   const fetcher = new SafeFetcher();
+  const alertDeps = { db, notifier: buildNotifier(config), appUrl: config.APP_URL, tz: config.APP_TZ };
 
   const attach = <T extends object>(name: string, handler: JobHandler<T>): void => {
     if (opts.mode === "worker") {
@@ -72,9 +75,23 @@ export function registerHandlers(
       // idempotency: a retry re-scores to identical rows.
       if (outcome.new + outcome.updated + outcome.reactivated > 0) {
         await recomputeForCompany(db, payload.companyId);
+        for (const userId of await matchesRepo.userIdsWithProfiles(db)) {
+          await dispatchInstant(alertDeps, userId);
+        }
       }
     },
   );
+
+  /** Alerts tick: instant catch-up + the daily digest when its hour has come. */
+  attach<{ slot?: string }>(QUEUES.notifyTick, async (_payload, ctx) => {
+    let instant = 0;
+    let digests = 0;
+    for (const userId of await matchesRepo.userIdsWithProfiles(db)) {
+      instant += await dispatchInstant(alertDeps, userId);
+      if ((await dispatchDigest(alertDeps, userId)) >= 0) digests += 1;
+    }
+    logger.info({ jobId: ctx.jobId, instant, digests }, "notify tick");
+  });
 
   attach(QUEUES.cleanup, async (_payload, ctx) => {
     logger.info({ jobId: ctx.jobId }, "cleanup tick");

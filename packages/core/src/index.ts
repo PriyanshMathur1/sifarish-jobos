@@ -73,3 +73,15 @@ export {
 } from "./matching/matching-engine.ts";
 export { extractSkills } from "./matching/skills-in-text.ts";
 export { recomputeForCompany, recomputeForUser, toMatchProfile } from "./matching/recompute.ts";
+export { tickRefresh } from "./ingestion/orchestrator.ts";
+export {
+  LogNotifier,
+  RoutingNotifier,
+  SmtpNotifier,
+  TelegramNotifier,
+  type Notifier,
+  type NotifyMessage,
+  type NotifyTarget,
+} from "./notify/notifier.ts";
+export { buildNotifier } from "./notify/build.ts";
+export { dispatchDigest, dispatchInstant, localParts } from "./notify/alerts.ts";

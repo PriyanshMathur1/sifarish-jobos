@@ -7,6 +7,7 @@ import {
   QUEUES,
   registerHandlers,
   recoverMissedRun,
+  tickRefresh,
 } from "@sifarish/core";
 import { completeFinishedRuns } from "@sifarish/core/ingestion/orchestrator";
 import { getDb } from "@sifarish/db";
@@ -21,9 +22,14 @@ function secretsMatch(given: string | undefined, expected: string): boolean {
 }
 
 /**
- * Serverless-cron entry (grill G8): Vercel cron POSTs here twice daily.
- * Runs the SAME handlers as the long-lived worker, drained in a time-boxed
- * batch: recovery check → orchestrate → company fan-out → run completion.
+ * Serverless-cron entry (grill G8, Autopilot A1). Two callers, one handler set:
+ *
+ * - Vercel cron (no `tier`): full reconcile. recovery check → orchestrate →
+ *   company fan-out → re-score → alerts → run completion.
+ * - External ticker (`?tier=watch` every 15 min, `?tier=normal` hourly):
+ *   refresh that tier only (no refresh_runs row), then alerts. This is what
+ *   makes "new opening within 15 minutes" true on a Hobby plan whose own
+ *   crons are daily.
  */
 export async function POST(req: NextRequest) {
   const config = loadConfig();
@@ -34,24 +40,44 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const tierParam = req.nextUrl.searchParams.get("tier");
+  const tier = tierParam === "watch" || tierParam === "normal" ? tierParam : null;
+
   const queue = new PgBossQueue(config.DATABASE_URL);
   await queue.start();
   try {
     registerHandlers(queue, config, { mode: "drain" });
-    const recovered = await recoverMissedRun(queue, config);
-    if (!recovered) {
-      await queue.enqueue(QUEUES.refreshOrchestrate, {}, { singletonKey: "cron-tick" });
+    const db = getDb();
+
+    let orchestrated = 0;
+    let recovered = false;
+    let ticked = 0;
+    if (tier) {
+      ticked = (await tickRefresh(db, queue, tier)).companies;
+    } else {
+      recovered = await recoverMissedRun(queue, config);
+      if (!recovered) {
+        await queue.enqueue(QUEUES.refreshOrchestrate, {}, { singletonKey: "cron-tick" });
+      }
+      orchestrated = await queue.drain(QUEUES.refreshOrchestrate, 2);
     }
-    const orchestrated = await queue.drain(QUEUES.refreshOrchestrate, 2);
+
     const refreshed = await queue.drain(QUEUES.refreshCompany, 500);
-    const rescored = await queue.drain(QUEUES.matchRecompute, 2);
+    const rescored = tier ? 0 : await queue.drain(QUEUES.matchRecompute, 2);
+
+    // Alerts every call: instant catch-up, digest when its hour has come.
+    await queue.enqueue(
+      QUEUES.notifyTick,
+      {},
+      { singletonKey: `notify:${Math.floor(Date.now() / 300_000)}` },
+    );
+    const notified = await queue.drain(QUEUES.notifyTick, 1);
 
     // Close out only runs whose fan-out fully processed (others keep RUNNING).
-    const completed = await completeFinishedRuns(getDb());
-    void completed;
+    if (!tier) await completeFinishedRuns(db);
 
-    log.info({ orchestrated, refreshed, rescored, recovered }, "cron drain complete");
-    return NextResponse.json({ ok: true, orchestrated, refreshed, rescored, recovered });
+    log.info({ tier, ticked, orchestrated, refreshed, rescored, notified, recovered }, "cron drain complete");
+    return NextResponse.json({ ok: true, tier, ticked, orchestrated, refreshed, rescored, notified, recovered });
   } finally {
     await queue.stop();
   }

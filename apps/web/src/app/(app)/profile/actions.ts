@@ -7,7 +7,7 @@ import { signOut } from "@/auth";
 import { requireUser } from "@/lib/session";
 import { getDb, profilesRepo, usersRepo, audit, schema } from "@sifarish/db";
 import { RESUME_MAX_BYTES } from "@sifarish/db/repo/profiles";
-import { recomputeForUser, logger } from "@sifarish/core";
+import { recomputeForUser, logger, loadConfig, TelegramNotifier, buildNotifier, dispatchDigest } from "@sifarish/core";
 import { eq } from "drizzle-orm";
 
 const csv = (s: FormDataEntryValue | null) =>
@@ -177,6 +177,57 @@ export async function saveAnswer(formData: FormData): Promise<void> {
 export async function deleteAnswer(answerId: string): Promise<void> {
   const { userId } = await requireUser();
   await profilesRepo.deleteAnswer(getDb(), userId, z.string().uuid().parse(answerId));
+  revalidatePath("/profile");
+}
+
+const band = z.enum(["strong", "good", "maybe"]);
+
+export async function updateAlertPreferences(formData: FormData): Promise<void> {
+  const { userId } = await requireUser();
+  const input = {
+    channel: z.enum(["email", "telegram", "none"]).parse(formData.get("channel") ?? "email"),
+    instantEnabled: formData.get("instantEnabled") === "on",
+    instantMinBand: band.parse(formData.get("instantMinBand") ?? "strong"),
+    digestEnabled: formData.get("digestEnabled") === "on",
+    digestMinBand: band.parse(formData.get("digestMinBand") ?? "good"),
+    digestHour: z.coerce.number().int().min(0).max(23).parse(formData.get("digestHour") ?? 9),
+    telegramChatId: optStr(formData.get("telegramChatId"), 40),
+  };
+  await profilesRepo.upsertAlertPreferences(getDb(), userId, input);
+  revalidatePath("/profile");
+}
+
+/** One-time Telegram setup: pick up the chat id of whoever last messaged the bot. */
+export async function detectTelegramChat(): Promise<void> {
+  const { userId } = await requireUser();
+  const config = loadConfig();
+  if (!config.TELEGRAM_BOT_TOKEN) return;
+  const found = await new TelegramNotifier(config.TELEGRAM_BOT_TOKEN).latestChatId();
+  if (!found) return;
+  const db = getDb();
+  const current = await profilesRepo.getAlertPreferences(db, userId);
+  await profilesRepo.upsertAlertPreferences(db, userId, {
+    channel: "telegram",
+    instantEnabled: current?.instantEnabled ?? true,
+    instantMinBand: current?.instantMinBand ?? "strong",
+    digestEnabled: current?.digestEnabled ?? true,
+    digestMinBand: current?.digestMinBand ?? "good",
+    digestHour: current?.digestHour ?? 9,
+    telegramChatId: found.chatId,
+  });
+  revalidatePath("/profile");
+}
+
+/** Send the digest now, regardless of hour, so the channel can be checked end to end. */
+export async function sendTestDigest(): Promise<void> {
+  const { userId } = await requireUser();
+  const config = loadConfig();
+  await dispatchDigest(
+    { db: getDb(), notifier: buildNotifier(config), appUrl: config.APP_URL, tz: config.APP_TZ },
+    userId,
+    new Date(),
+    { force: true },
+  );
   revalidatePath("/profile");
 }
 
