@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getDb, contactsRepo } from "@sifarish/db";
 import { requireUser } from "@/lib/session";
 import { EmptyState } from "@/components/empty-state";
-import { addContact, importContacts, discoverFromPage } from "./actions";
+import { addContact, importContacts, discoverFromPage, importLinkedInCsv } from "./actions";
 import { StatusBadge } from "@/components/status-badge";
 import { SelectAllCheckbox } from "@/components/select-all-checkbox";
 
@@ -90,6 +90,37 @@ export default async function ContactsPage() {
         </form>
       </section>
 
+      <form
+        action={importLinkedInCsv}
+        className="flex flex-wrap items-end gap-3 rounded-xl border border-line bg-white p-4"
+      >
+        <div className="flex-1">
+          <h2 className="font-semibold">Import your LinkedIn connections</h2>
+          <p className="text-xs text-muted">
+            Your own data export: LinkedIn → Settings → Data privacy → Get a copy of your data →
+            Connections. Upload the Connections.csv. Names, titles and companies come through;
+            emails only where the connection allowed it.
+          </p>
+        </div>
+        <input
+          name="file"
+          type="file"
+          accept=".csv,text/csv"
+          required
+          className="rounded-lg border border-line bg-white px-3 py-1.5 text-sm"
+        />
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="onlyTracked" defaultChecked className="accent-accent" />
+          Only people at companies Sifarish tracks
+        </label>
+        <button
+          type="submit"
+          className="rounded-lg border border-line px-4 py-2 font-medium hover:bg-accent-soft"
+        >
+          Import CSV
+        </button>
+      </form>
+
       {process.env.CONTACT_DISCOVERY === "true" ? (
         <form
           action={discoverFromPage}
@@ -131,15 +162,25 @@ export default async function ContactsPage() {
         <form method="GET" action="/outreach/bulk">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm text-muted">
-              Select contacts with a known email to draft one templated outreach to each — every
-              draft still lands in your Gmail Drafts for a last look before you send it.
+              Select contacts with a known email. Draft in Gmail puts one templated message per
+              person in your Drafts; Start campaign sends them from your Gmail a few at a time
+              with follow-ups.
             </p>
-            <button
-              type="submit"
-              className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper hover:opacity-90"
-            >
-              Reach out to selected
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-accent-soft"
+              >
+                Draft in Gmail
+              </button>
+              <button
+                type="submit"
+                formAction="/outreach/campaigns/new"
+                className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper hover:opacity-90"
+              >
+                Start campaign
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto rounded-xl border border-line bg-white">
             <table className="w-full text-sm">

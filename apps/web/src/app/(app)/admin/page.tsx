@@ -1,7 +1,8 @@
-import { desc, sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { getDb, schema, jobsRepo } from "@sifarish/db";
 import { requireAdmin } from "@/lib/session";
-import { runGlobalRefresh, refreshOneCompany, toggleCompanyStatus, toggleCompanyPriority } from "./actions";
+import { runGlobalRefresh, refreshOneCompany, toggleCompanyStatus, toggleCompanyPriority, addCompanyPage, removeCompanyPage, discoverAllCompanyPages } from "./actions";
+import { loadConfig } from "@sifarish/core";
 
 export const metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export default async function AdminPage() {
   const { userId } = await requireAdmin();
   const db = getDb();
 
-  const [companies, runs, errors, [counts]] = await Promise.all([
+  const [companies, runs, errors, [counts], pages] = await Promise.all([
     jobsRepo.listCompanies(db),
     db.select().from(schema.refreshRuns).orderBy(desc(schema.refreshRuns.scheduledAt)).limit(10),
     db.select().from(schema.crawlErrors).orderBy(desc(schema.crawlErrors.createdAt)).limit(10),
@@ -21,8 +22,14 @@ export default async function AdminPage() {
         removed: sql<number>`count(*) filter (where status = 'REMOVED')::int`,
       })
       .from(schema.jobs),
+    db
+      .select({ page: schema.companyPages, companyName: schema.companies.name })
+      .from(schema.companyPages)
+      .innerJoin(schema.companies, eq(schema.companyPages.companyId, schema.companies.id))
+      .orderBy(schema.companies.name),
   ]);
   void userId;
+  const discoveryOn = loadConfig().CONTACT_DISCOVERY;
 
   return (
     <div className="flex flex-col gap-8">
@@ -122,6 +129,59 @@ export default async function AdminPage() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="font-semibold">Contact discovery pages ({pages.length})</h2>
+            <p className="text-xs text-muted">
+              Company-owned team/about pages. Discovery reads schema.org Person data only, honours
+              robots.txt, and records provenance on every contact.
+              {discoveryOn ? "" : " CONTACT_DISCOVERY is off on this deployment."}
+            </p>
+          </div>
+          <form action={discoverAllCompanyPages}>
+            <button
+              type="submit"
+              disabled={!discoveryOn || pages.length === 0}
+              className="rounded-lg bg-ink px-4 py-2 font-medium text-paper hover:opacity-90 disabled:opacity-40"
+            >
+              Discover all
+            </button>
+          </form>
+        </div>
+        <form action={addCompanyPage} className="mt-2 flex flex-wrap items-end gap-2 rounded-xl border border-line bg-white p-3 text-sm">
+          <select name="companyId" required className="rounded-lg border border-line px-2 py-1.5">
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <select name="kind" className="rounded-lg border border-line px-2 py-1.5">
+            <option value="team">Team page</option>
+            <option value="leadership">Leadership</option>
+            <option value="about">About</option>
+            <option value="other">Other</option>
+          </select>
+          <input name="url" type="url" required placeholder="https://company.example/team" className="min-w-72 flex-1 rounded-lg border border-line px-3 py-1.5" />
+          <button type="submit" className="rounded border border-line px-3 py-1.5 hover:bg-accent-soft">Add page</button>
+        </form>
+        {pages.length > 0 ? (
+          <ul className="mt-2 flex flex-col gap-1 text-sm">
+            {pages.map(({ page, companyName }) => (
+              <li key={page.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white px-3 py-2">
+                <span className="font-medium">{companyName}</span>
+                <a href={page.url} target="_blank" rel="noopener noreferrer" className="truncate text-muted underline">{page.url}</a>
+                <span className="text-xs text-muted">
+                  {page.lastDiscoveredAt ? `${page.lastFound ?? 0} found on ${page.lastDiscoveredAt.toISOString().slice(0, 10)}` : "never run"}
+                </span>
+                <form action={removeCompanyPage.bind(null, page.id)} className="ml-auto">
+                  <button type="submit" className="rounded border border-line px-2 py-1 text-xs text-warn hover:bg-accent-soft">Remove</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </section>
 
       <section>

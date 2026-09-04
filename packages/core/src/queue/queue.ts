@@ -40,7 +40,8 @@ export const QUEUES = {
   refreshCompany: "job-refresh-company",
   atsDetection: "ats-detection",
   matchRecompute: "match-recompute",
-  notifyTick: "notify-tick",
+  autopilotTick: "autopilot-tick",
+  tierTick: "tier-tick",
   cleanup: "cleanup",
 } as const;
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

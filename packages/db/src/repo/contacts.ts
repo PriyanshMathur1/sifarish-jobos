@@ -105,6 +105,23 @@ export async function updateContactEmail(
     .where(and(eq(contacts.id, contactId), eq(contacts.userId, userId)));
 }
 
+export interface ContactEdit {
+  fullName: string;
+  title: string | null;
+  companyId: string | null;
+  businessEmail: string | null;
+  emailStatus: "VERIFIED" | "HIGH_CONFIDENCE" | "PROBABLE" | "UNKNOWN" | "INVALID";
+  professionalUrls: string[];
+}
+
+/** Edit the fields a person can reasonably correct by hand. Owner-scoped. */
+export async function updateContact(db: Db, userId: string, contactId: string, input: ContactEdit) {
+  await db
+    .update(contacts)
+    .set({ ...input })
+    .where(and(eq(contacts.id, contactId), eq(contacts.userId, userId)));
+}
+
 /** Suppress: hide + prevent rediscovery/sending (PRD §75). */
 export async function suppressContact(
   db: Db,

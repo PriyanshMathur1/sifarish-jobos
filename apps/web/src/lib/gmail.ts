@@ -1,14 +1,6 @@
 import { eq, and, isNull } from "drizzle-orm";
 import { getDb, schema } from "@sifarish/db";
-import {
-  RealGmailClient,
-  FakeGmailClient,
-  decryptToken,
-  encryptToken,
-  loadConfig,
-  type GmailClient,
-  type TokenBundle,
-} from "@sifarish/core";
+import { FakeGmailClient, gmailClientForUser, gmailScopesFor, hasScope, GMAIL_SCOPE, loadConfig, type GmailClient } from "@sifarish/core";
 
 /**
  * Gmail account plumbing (grill G5): tokens live encrypted in
@@ -22,56 +14,33 @@ const sharedFake = new FakeGmailClient();
 
 export async function getGmailStatus(
   userId: string,
-): Promise<{ connected: boolean; email?: string }> {
-  if (process.env.GMAIL_TEST_FAKE === "true") return { connected: true, email: "fake@test.local" };
+): Promise<{ connected: boolean; email?: string; canSend?: boolean; canReadMeta?: boolean }> {
+  if (process.env.GMAIL_TEST_FAKE === "true")
+    return { connected: true, email: "fake@test.local", canSend: true, canReadMeta: true };
   const db = getDb();
   const [row] = await db
-    .select({ email: schema.emailAccounts.email })
+    .select({ email: schema.emailAccounts.email, scopes: schema.emailAccounts.scopes })
     .from(schema.emailAccounts)
     .where(and(eq(schema.emailAccounts.userId, userId), isNull(schema.emailAccounts.revokedAt)));
-  return row ? { connected: true, email: row.email } : { connected: false };
+  return row
+    ? {
+        connected: true,
+        email: row.email,
+        canSend: hasScope(row.scopes, GMAIL_SCOPE.send),
+        canReadMeta: hasScope(row.scopes, GMAIL_SCOPE.metadata),
+      }
+    : { connected: false };
 }
 
 export async function getGmailClientForUser(userId: string): Promise<GmailClient | null> {
   if (process.env.GMAIL_TEST_FAKE === "true") return sharedFake;
-
-  const config = loadConfig();
-  if (
-    !config.GMAIL_OAUTH_CLIENT_ID ||
-    !config.GMAIL_OAUTH_CLIENT_SECRET ||
-    !config.TOKEN_ENCRYPTION_KEY
-  ) {
-    return null;
-  }
-  const db = getDb();
-  const [row] = await db
-    .select()
-    .from(schema.emailAccounts)
-    .where(and(eq(schema.emailAccounts.userId, userId), isNull(schema.emailAccounts.revokedAt)));
-  if (!row) return null;
-
-  const tokens = JSON.parse(
-    decryptToken(row.oauthTokensEnc, config.TOKEN_ENCRYPTION_KEY),
-  ) as TokenBundle;
-  return new RealGmailClient({
-    tokens,
-    clientId: config.GMAIL_OAUTH_CLIENT_ID,
-    clientSecret: config.GMAIL_OAUTH_CLIENT_SECRET,
-    onTokensRefreshed: async (fresh) => {
-      await db
-        .update(schema.emailAccounts)
-        .set({ oauthTokensEnc: encryptToken(JSON.stringify(fresh), config.TOKEN_ENCRYPTION_KEY!) })
-        .where(eq(schema.emailAccounts.id, row.id));
-    },
-  });
+  const found = await gmailClientForUser(getDb(), loadConfig(), userId);
+  return found?.client ?? null;
 }
 
+/** Scopes the connect flow asks for; see gmailScopesFor in core. */
 export function gmailScopes(directSend: boolean): string[] {
-  // Minimum necessary (PRD §78): compose covers draft creation; send only
-  // when the direct-send flag is deliberately enabled.
-  const scopes = ["https://www.googleapis.com/auth/gmail.compose"];
-  if (directSend) scopes.push("https://www.googleapis.com/auth/gmail.send");
-  return scopes;
+  return gmailScopesFor({ OUTREACH_DIRECT_SEND: directSend });
 }
 
 export function buildGoogleAuthUrl(

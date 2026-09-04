@@ -67,11 +67,11 @@ export async function POST(req: NextRequest) {
 
     // Alerts every call: instant catch-up, digest when its hour has come.
     await queue.enqueue(
-      QUEUES.notifyTick,
+      QUEUES.autopilotTick,
       {},
-      { singletonKey: `notify:${Math.floor(Date.now() / 300_000)}` },
+      { singletonKey: `autopilot:${Math.floor(Date.now() / 300_000)}` },
     );
-    const notified = await queue.drain(QUEUES.notifyTick, 1);
+    const notified = await queue.drain(QUEUES.autopilotTick, 1);
 
     // Close out only runs whose fan-out fully processed (others keep RUNNING).
     if (!tier) await completeFinishedRuns(db);

@@ -375,7 +375,10 @@ export default async function ProfilePage() {
           <div className="mt-2 flex items-center gap-3 text-sm">
             <span>
               Connected as <span className="font-mono">{gmail.email}</span>. Outreach drafts land
-              in this mailbox.
+              in this mailbox{config.OUTREACH_DIRECT_SEND ? "; campaigns send from it" : ""}.
+              {config.OUTREACH_DIRECT_SEND && !gmail.canSend ? (
+                <span className="ml-1 text-warn">Reconnect to grant the send and metadata permissions campaigns need.</span>
+              ) : null}
             </span>
             <form action={disconnectGmail}>
               <button
@@ -389,8 +392,10 @@ export default async function ProfilePage() {
         ) : (
           <div className="mt-2 text-sm text-muted">
             <p>
-              Connect Gmail so approved outreach becomes a draft in your own mailbox (scope: compose
-              only; Sifarish cannot read your email).
+              Connect Gmail so approved outreach becomes a draft in your own mailbox.{" "}
+              {config.OUTREACH_DIRECT_SEND
+                ? "Campaigns are on, so Sifarish also asks to send mail and to read message headers (never bodies) on threads it started, for reply and bounce detection."
+                : "Scope: compose only; Sifarish cannot read or send your email."}
             </p>
             <a
               href="/api/gmail/connect"

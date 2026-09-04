@@ -57,6 +57,13 @@
       "when": 1788538214275,
       "tag": "0007_alerts-tiers",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788539054564,
+      "tag": "0008_campaigns",
+      "breakpoints": true
     }
   ]
 }

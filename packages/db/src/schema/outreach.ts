@@ -145,11 +145,20 @@ export const outreachMessages = pgTable(
       .default("PREPARED"),
     gmailDraftId: text("gmail_draft_id"),
     gmailThreadId: text("gmail_thread_id"),
+    gmailMessageId: text("gmail_message_id"),
+    /** RFC 5322 Message-ID we set on send, so follow-ups can thread (In-Reply-To). */
+    rfcMessageId: text("rfc_message_id"),
+    campaignId: uuid("campaign_id"),
+    step: integer("step").notNull().default(0),
     error: text("error"),
     sentAt: timestamp("sent_at", { withTimezone: true }),
+    repliedAt: timestamp("replied_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
-  (t) => [index("outreach_user_idx").on(t.userId, t.status)],
+  (t) => [
+    index("outreach_user_idx").on(t.userId, t.status),
+    index("outreach_campaign_idx").on(t.campaignId),
+  ],
 );
 
 export const applications = pgTable(

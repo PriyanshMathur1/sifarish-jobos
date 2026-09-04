@@ -59,15 +59,24 @@ export default async function OutreachPage({
         <div>
           <h1 className="font-display text-[28px] tracking-tight">Outreach</h1>
           <p className="mt-1 text-sm text-muted">
-            Every message is prepared, previewed, and approved by you — one at a time, no blasts.
+            Every message is prepared and previewed. Send one at a time here, or approve a campaign
+            once and let it run inside the caps.
           </p>
         </div>
-        <Link
-          href="/outreach/new"
-          className="rounded-lg bg-ink px-4 py-2 font-medium text-paper hover:opacity-90"
-        >
-          New outreach
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/outreach/campaigns"
+            className="rounded-lg border border-line px-4 py-2 font-medium hover:bg-accent-soft"
+          >
+            Campaigns
+          </Link>
+          <Link
+            href="/outreach/new"
+            className="rounded-lg bg-ink px-4 py-2 font-medium text-paper hover:opacity-90"
+          >
+            New outreach
+          </Link>
+        </div>
       </div>
 
       {error ? (

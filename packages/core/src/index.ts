@@ -85,3 +85,20 @@ export {
 } from "./notify/notifier.ts";
 export { buildNotifier } from "./notify/build.ts";
 export { dispatchDigest, dispatchInstant, localParts } from "./notify/alerts.ts";
+export {
+  createCampaign,
+  setCampaignStatus,
+  drainCampaigns,
+  syncReplies,
+  UNSUBSCRIBE_LINE,
+  type CampaignDeps,
+  type CreateCampaignInput,
+} from "./outreach/campaigns.ts";
+export {
+  gmailAccountForUser,
+  gmailClientForUser,
+  gmailScopesFor,
+  hasScope,
+  GMAIL_SCOPE,
+} from "./outreach/gmail-accounts.ts";
+export { newRfcMessageId } from "./outreach/outreach.ts";

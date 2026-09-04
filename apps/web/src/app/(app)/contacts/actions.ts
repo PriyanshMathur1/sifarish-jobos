@@ -17,6 +17,7 @@ import {
 } from "@sifarish/core";
 import { ilike, sql } from "drizzle-orm";
 import { rateLimit } from "@/lib/rate-limit";
+import { parseCsv } from "@/lib/csv";
 
 const contactInput = z.object({
   fullName: z.string().trim().min(2).max(200),
@@ -75,6 +76,101 @@ export async function addContact(formData: FormData): Promise<void> {
     professionalUrls: parsed.url ? [parsed.url] : [],
     sourceType: "manual",
   });
+  revalidatePath("/contacts");
+}
+
+export async function editContact(contactId: string, formData: FormData): Promise<void> {
+  const { userId } = await requireUser();
+  const id = z.string().uuid().parse(contactId);
+  const parsed = contactInput.parse({
+    fullName: formData.get("fullName"),
+    title: formData.get("title") || undefined,
+    companyName: formData.get("companyName") || undefined,
+    email: formData.get("email") || "",
+    url: formData.get("url") || "",
+  });
+  const db = getDb();
+  const existing = await contactsRepo.getContact(db, userId, id);
+  if (!existing) return;
+  const companyId = await companyIdByName(parsed.companyName);
+  const email = parsed.email || null;
+
+  // Email unchanged keeps its status; a new address is re-validated as observed.
+  let emailStatus = existing.contact.emailStatus;
+  if (email !== existing.contact.businessEmail) {
+    emailStatus = "UNKNOWN";
+    if (email) {
+      const v = await new EmailValidator().validate(email, { origin: "observed" });
+      emailStatus = v.status === "VERIFIED" ? "VERIFIED" : v.status === "INVALID" ? "INVALID" : "UNKNOWN";
+      if (v.status === "VERIFIED" && companyId) {
+        const pattern = learnPattern(parsed.fullName, email);
+        if (pattern) await contactsRepo.recordPatternEvidence(db, companyId, pattern, email.split("@")[1]!);
+      }
+    }
+  }
+  await contactsRepo.updateContact(db, userId, id, {
+    fullName: parsed.fullName,
+    title: parsed.title ?? null,
+    companyId,
+    businessEmail: email,
+    emailStatus,
+    professionalUrls: parsed.url ? [parsed.url] : existing.contact.professionalUrls,
+  });
+  revalidatePath(`/contacts/${id}`);
+  revalidatePath("/contacts");
+}
+
+/** Upload of the LinkedIn Connections.csv export. Only rows whose company Sifarish tracks, or with an email, are useful; the rest are imported name-only. */
+export async function importLinkedInCsv(formData: FormData): Promise<void> {
+  const { userId } = await requireUser();
+  if (!rateLimit(`import:${userId}`, { ratePerMinute: 3 }).allowed) return;
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0 || file.size > 5 * 1024 * 1024) return;
+  const onlyTracked = formData.get("onlyTracked") === "on";
+
+  const text = Buffer.from(await file.arrayBuffer()).toString("utf8");
+  const rows = parseCsv(text);
+  const headerIdx = rows.findIndex((r) => r.some((c) => /^first name$/i.test(c.trim())));
+  if (headerIdx < 0) return;
+  const header = rows[headerIdx]!.map((h) => h.trim().toLowerCase());
+  const col = (name: string) => header.indexOf(name);
+  const iFirst = col("first name");
+  const iLast = col("last name");
+  const iUrl = col("url");
+  const iEmail = col("email address");
+  const iCompany = col("company");
+  const iPos = col("position");
+
+  const db = getDb();
+  const validator = new EmailValidator();
+  let imported = 0;
+  for (const r of rows.slice(headerIdx + 1)) {
+    if (imported >= 1000) break;
+    const fullName = `${r[iFirst] ?? ""} ${r[iLast] ?? ""}`.trim();
+    if (fullName.length < 2) continue;
+    const companyName = (r[iCompany] ?? "").trim();
+    const companyId = await companyIdByName(companyName || undefined);
+    if (onlyTracked && !companyId) continue;
+    const rawEmail = (r[iEmail] ?? "").trim();
+    const validEmail = rawEmail && z.string().email().safeParse(rawEmail).success ? rawEmail : null;
+    let emailStatus: "VERIFIED" | "UNKNOWN" | "INVALID" = "UNKNOWN";
+    if (validEmail) {
+      const v = await validator.validate(validEmail, { origin: "observed" });
+      emailStatus = v.status === "VERIFIED" ? "VERIFIED" : v.status === "INVALID" ? "INVALID" : "UNKNOWN";
+    }
+    const url = (r[iUrl] ?? "").trim();
+    await contactsRepo.createContact(db, userId, {
+      fullName,
+      title: (r[iPos] ?? "").trim() || null,
+      companyId,
+      businessEmail: validEmail,
+      emailStatus,
+      professionalUrls: url ? [url] : [],
+      sourceType: "manual",
+    });
+    imported += 1;
+  }
+  await audit(db, { actorId: userId, action: "contacts.import.linkedin_csv", subjectType: "contact", meta: { imported } });
   revalidatePath("/contacts");
 }
 

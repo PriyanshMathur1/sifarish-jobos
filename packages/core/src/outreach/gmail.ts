@@ -12,6 +12,19 @@ export interface OutboundEmail {
   to: string;
   subject: string;
   body: string; // plain text
+  /** Threading (campaign follow-ups): Gmail thread + RFC ids of the message being replied to. */
+  thread?: { threadId: string; inReplyTo: string };
+  /** Our own RFC 5322 Message-ID for this message (so later replies can reference it). */
+  messageId?: string;
+}
+
+export interface ThreadMessageMeta {
+  id: string;
+  from: string;
+  subject: string;
+  date: Date | null;
+  /** true when Gmail labelled it as ours (SENT) */
+  sent: boolean;
 }
 
 export type GmailError =
@@ -24,6 +37,8 @@ export interface GmailClient {
   createDraft(email: OutboundEmail): Promise<Result<{ draftId: string }, GmailError>>;
   /** Send directly; returns the message/thread ids. */
   send(email: OutboundEmail): Promise<Result<{ messageId: string; threadId: string }, GmailError>>;
+  /** Headers-only view of a thread (needs gmail.metadata scope); used for reply/bounce detection. */
+  getThread(threadId: string): Promise<Result<{ messages: ThreadMessageMeta[] }, GmailError>>;
 }
 
 export interface TokenBundle {
@@ -41,6 +56,9 @@ export function toRfc822(email: OutboundEmail, from?: string): string {
     from ? `From: ${headerSafe(from)}` : null,
     `To: ${headerSafe(email.to)}`,
     `Subject: ${headerSafe(email.subject)}`,
+    email.messageId ? `Message-ID: ${headerSafe(email.messageId)}` : null,
+    email.thread ? `In-Reply-To: ${headerSafe(email.thread.inReplyTo)}` : null,
+    email.thread ? `References: ${headerSafe(email.thread.inReplyTo)}` : null,
     `MIME-Version: 1.0`,
     `Content-Type: text/plain; charset="UTF-8"`,
   ]
@@ -98,14 +116,14 @@ export class RealGmailClient implements GmailClient {
     }
   }
 
-  private async call<T>(path: string, payload: unknown): Promise<Result<T, GmailError>> {
+  private async call<T>(path: string, payload: unknown, method = "POST"): Promise<Result<T, GmailError>> {
     const token = await this.accessToken();
     if (!token.ok) return token;
     try {
       const res = await this.fetchImpl(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, {
-        method: "POST",
+        method,
         headers: { authorization: `Bearer ${token.value}`, "content-type": "application/json" },
-        body: JSON.stringify(payload),
+        ...(method === "POST" ? { body: JSON.stringify(payload) } : {}),
       });
       if (!res.ok) {
         const detail = await res.text();
@@ -128,8 +146,38 @@ export class RealGmailClient implements GmailClient {
   async send(email: OutboundEmail) {
     const r = await this.call<{ id: string; threadId: string }>("messages/send", {
       raw: b64url(toRfc822(email)),
+      ...(email.thread ? { threadId: email.thread.threadId } : {}),
     });
     return r.ok ? ok({ messageId: r.value.id, threadId: r.value.threadId }) : r;
+  }
+
+  async getThread(threadId: string) {
+    type Raw = {
+      messages?: Array<{
+        id: string;
+        labelIds?: string[];
+        internalDate?: string;
+        payload?: { headers?: Array<{ name: string; value: string }> };
+      }>;
+    };
+    const r = await this.call<Raw>(
+      `threads/${encodeURIComponent(threadId)}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
+      undefined,
+      "GET",
+    );
+    if (!r.ok) return r;
+    const messages: ThreadMessageMeta[] = (r.value.messages ?? []).map((m) => {
+      const h = (name: string) =>
+        m.payload?.headers?.find((x) => x.name.toLowerCase() === name.toLowerCase())?.value ?? "";
+      return {
+        id: m.id,
+        from: h("From"),
+        subject: h("Subject"),
+        date: m.internalDate ? new Date(Number(m.internalDate)) : null,
+        sent: (m.labelIds ?? []).includes("SENT"),
+      };
+    });
+    return ok({ messages });
   }
 }
 
@@ -138,6 +186,12 @@ export class FakeGmailClient implements GmailClient {
   drafts: OutboundEmail[] = [];
   sent: OutboundEmail[] = [];
   failNext: GmailError | null = null;
+  /** threadId → messages the fake "mailbox" holds; tests push replies here. */
+  threads = new Map<string, ThreadMessageMeta[]>();
+
+  async getThread(threadId: string) {
+    return ok({ messages: this.threads.get(threadId) ?? [] });
+  }
 
   async createDraft(email: OutboundEmail) {
     if (this.failNext) {
@@ -156,9 +210,11 @@ export class FakeGmailClient implements GmailClient {
       return err(e);
     }
     this.sent.push(email);
-    return ok({
-      messageId: `fake-msg-${this.sent.length}`,
-      threadId: `fake-thread-${this.sent.length}`,
-    });
+    const messageId = `fake-msg-${this.sent.length}`;
+    const threadId = email.thread?.threadId ?? `fake-thread-${this.sent.length}`;
+    const list = this.threads.get(threadId) ?? [];
+    list.push({ id: messageId, from: "me@fake.local", subject: email.subject, date: new Date(), sent: true });
+    this.threads.set(threadId, list);
+    return ok({ messageId, threadId });
   }
 }

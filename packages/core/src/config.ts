@@ -46,6 +46,11 @@ const envSchema = z.object({
   CONTACT_DISCOVERY: bool,
   OUTREACH_DIRECT_SEND: bool,
   OUTREACH_DAILY_SEND_CAP: z.coerce.number().int().positive().default(25),
+  // Campaign rails (AUTOPILOT-PLAN A4). Hard ceilings; campaigns can only ask for less.
+  CAMPAIGN_DAILY_CAP_MAX: z.coerce.number().int().positive().default(100),
+  CAMPAIGN_PER_COMPANY_14D: z.coerce.number().int().positive().default(2),
+  CAMPAIGN_WARMUP_DAYS: z.coerce.number().int().min(0).default(7),
+  CAMPAIGN_WARMUP_DAILY_CAP: z.coerce.number().int().positive().default(10),
   SEMANTIC_MATCHING: bool,
   EMAIL_NOTIFICATIONS: bool,
 

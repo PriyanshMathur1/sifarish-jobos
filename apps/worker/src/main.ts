@@ -22,6 +22,9 @@ async function main() {
 
   registerHandlers(queue, config, { mode: "worker" });
   await queue.schedule(QUEUES.refreshOrchestrate, config.JOB_REFRESH_SCHEDULE, config.APP_TZ);
+  // Autopilot: tier ticks + alerts/campaigns/reply sync, every 15 minutes.
+  await queue.schedule(QUEUES.tierTick, "*/15 * * * *", config.APP_TZ);
+  await queue.schedule(QUEUES.autopilotTick, "*/15 * * * *", config.APP_TZ);
   await recoverMissedRun(queue, config); // PRD §144: at most one catch-up run
 
   logger.info(

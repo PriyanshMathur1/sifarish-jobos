@@ -5,7 +5,7 @@ import { getDb, contactsRepo } from "@sifarish/db";
 import { EmailValidator, inferEmails, loadConfig } from "@sifarish/core";
 import { requireUser } from "@/lib/session";
 import { StatusBadge } from "@/components/status-badge";
-import { chooseSuggestedEmail, suppressContactAction, lookupEmailViaHunter } from "../actions";
+import { chooseSuggestedEmail, suppressContactAction, lookupEmailViaHunter, editContact } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -146,6 +146,35 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
           {" · "}added {contact.createdAt.toISOString().slice(0, 10)}
         </p>
       </section>
+
+      <details className="mt-4 rounded-xl border border-line bg-white p-4 text-sm">
+        <summary className="cursor-pointer font-semibold">Edit details</summary>
+        <form action={editContact.bind(null, contact.id)} className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 font-medium">
+            Full name
+            <input name="fullName" required defaultValue={contact.fullName} className="rounded-lg border border-line px-3 py-2 font-normal" />
+          </label>
+          <label className="flex flex-col gap-1 font-medium">
+            Title
+            <input name="title" defaultValue={contact.title ?? ""} className="rounded-lg border border-line px-3 py-2 font-normal" />
+          </label>
+          <label className="flex flex-col gap-1 font-medium">
+            Company (must match a tracked company to enable email suggestions)
+            <input name="companyName" defaultValue={companyName ?? ""} className="rounded-lg border border-line px-3 py-2 font-normal" />
+          </label>
+          <label className="flex flex-col gap-1 font-medium">
+            Email
+            <input name="email" type="email" defaultValue={contact.businessEmail ?? ""} className="rounded-lg border border-line px-3 py-2 font-normal" />
+          </label>
+          <label className="flex flex-col gap-1 font-medium sm:col-span-2">
+            Profile URL
+            <input name="url" defaultValue={contact.professionalUrls[0] ?? ""} className="rounded-lg border border-line px-3 py-2 font-normal" />
+          </label>
+          <div className="sm:col-span-2">
+            <button type="submit" className="rounded-lg bg-ink px-4 py-2 font-medium text-paper hover:opacity-90">Save changes</button>
+          </div>
+        </form>
+      </details>
 
       <div className="mt-6">
         <Link

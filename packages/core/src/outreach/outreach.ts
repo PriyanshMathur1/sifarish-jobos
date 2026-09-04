@@ -126,6 +126,8 @@ export interface ApproveDeps {
   gmail: GmailClient;
   directSendEnabled: boolean;
   dailySendCap: number;
+  /** host part of generated Message-IDs (APP_URL host) */
+  messageIdHost?: string;
 }
 
 export type ApproveError =
@@ -156,6 +158,17 @@ export interface ApproveInput {
   templateId: string;
   subject: string;
   body: string;
+  /** Campaign context: step > 0 is a follow-up in an existing thread, so recipient dedup is skipped. */
+  campaign?: {
+    campaignId: string;
+    step: number;
+    thread?: { threadId: string; inReplyTo: string };
+  };
+}
+
+/** RFC 5322 Message-ID we stamp on every send, so follow-ups can reference it. */
+export function newRfcMessageId(host: string): string {
+  return `<${crypto.randomUUID()}@${host}>`;
 }
 
 export async function approveOutreach(
@@ -198,6 +211,7 @@ export async function approveOutreach(
   };
 
   if (mode === "send" && !deps.directSendEnabled) return err({ kind: "send_disabled" });
+  const rfcMessageId = newRfcMessageId(deps.messageIdHost ?? "sifarish.local");
 
   // Guard checks + PREPARED insert run in ONE transaction under a per-user
   // advisory lock, so two concurrent approvals cannot both pass the
@@ -218,8 +232,12 @@ export async function approveOutreach(
     if (suppressed) return err({ kind: "suppressed" });
 
     // Recipient dedup (PRD §80): one message per recipient per window —
-    // PREPARED included, so an in-flight approval blocks a twin.
-    const [recent] = await tx
+    // PREPARED included, so an in-flight approval blocks a twin. Campaign
+    // follow-ups reply inside their own thread and are exempt.
+    const isFollowUp = (input.campaign?.step ?? 0) > 0;
+    const [recent] = isFollowUp
+      ? [undefined]
+      : await tx
       .select({ createdAt: schema.outreachMessages.createdAt })
       .from(schema.outreachMessages)
       .where(
@@ -266,6 +284,9 @@ export async function approveOutreach(
         body: preview.body,
         mode,
         status: "PREPARED",
+        campaignId: input.campaign?.campaignId ?? null,
+        step: input.campaign?.step ?? 0,
+        rfcMessageId: mode === "send" ? rfcMessageId : null,
       })
       .returning({ id: schema.outreachMessages.id });
     return ok(row!.id);
@@ -273,7 +294,13 @@ export async function approveOutreach(
   if (!guarded.ok) return guarded;
   const outreachId = guarded.value;
 
-  const email = { to: preview.toEmail, subject: preview.subject, body: preview.body };
+  const email = {
+    to: preview.toEmail,
+    subject: preview.subject,
+    body: preview.body,
+    ...(mode === "send" ? { messageId: rfcMessageId } : {}),
+    ...(input.campaign?.thread ? { thread: input.campaign.thread } : {}),
+  };
   const result =
     mode === "draft" ? await deps.gmail.createDraft(email) : await deps.gmail.send(email);
 
@@ -293,6 +320,7 @@ export async function approveOutreach(
           status: "SENT" as const,
           sentAt: new Date(),
           gmailThreadId: (result.value as { threadId: string }).threadId,
+          gmailMessageId: (result.value as { messageId: string }).messageId,
         };
   await db
     .update(schema.outreachMessages)

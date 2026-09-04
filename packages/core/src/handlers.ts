@@ -4,12 +4,14 @@ import type { JobHandler, Queue } from "./queue/queue.ts";
 import { QUEUES } from "./queue/queue.ts";
 import { SafeFetcher } from "./fetch/safe-fetcher.ts";
 import { refreshCompany } from "./ingestion/ingest.ts";
-import { orchestrateRefresh, findMissedSlot } from "./ingestion/orchestrator.ts";
+import { orchestrateRefresh, findMissedSlot, tickRefresh } from "./ingestion/orchestrator.ts";
 import { logger } from "./logger.ts";
 import { recomputeForCompany, recomputeForUser } from "./matching/recompute.ts";
 import { matchesRepo } from "@sifarish/db";
 import { buildNotifier } from "./notify/build.ts";
 import { dispatchDigest, dispatchInstant } from "./notify/alerts.ts";
+import { drainCampaigns, syncReplies, type CampaignDeps } from "./outreach/campaigns.ts";
+import { gmailClientForUser, hasScope, GMAIL_SCOPE } from "./outreach/gmail-accounts.ts";
 
 export type HandlerMode = "worker" | "drain";
 
@@ -82,15 +84,53 @@ export function registerHandlers(
     },
   );
 
-  /** Alerts tick: instant catch-up + the daily digest when its hour has come. */
-  attach<{ slot?: string }>(QUEUES.notifyTick, async (_payload, ctx) => {
+  /** Worker-mode tier ticks: watch every call, normal once an hour. */
+  attach<{ slot?: string }>(QUEUES.tierTick, async (_payload, ctx) => {
+    const now = new Date();
+    const watch = await tickRefresh(db, queue, "watch", now);
+    const normal = now.getMinutes() < 15 ? await tickRefresh(db, queue, "normal", now) : { companies: 0 };
+    logger.info({ jobId: ctx.jobId, watch: watch.companies, normal: normal.companies }, "tier tick");
+  });
+
+  /**
+   * Autopilot tick (every ticker call / every 15 min in worker mode):
+   * alerts (instant catch-up + digest when due), campaign sends inside the
+   * rails, and reply/bounce sync over threads we started.
+   */
+  attach<{ slot?: string }>(QUEUES.autopilotTick, async (_payload, ctx) => {
     let instant = 0;
     let digests = 0;
+    let sent = 0;
+    let replied = 0;
+    let bounced = 0;
     for (const userId of await matchesRepo.userIdsWithProfiles(db)) {
       instant += await dispatchInstant(alertDeps, userId);
       if ((await dispatchDigest(alertDeps, userId)) >= 0) digests += 1;
+
+      if (!config.OUTREACH_DIRECT_SEND) continue;
+      const gmail = await gmailClientForUser(db, config, userId);
+      if (!gmail || !hasScope(gmail.scopes, GMAIL_SCOPE.send)) continue;
+      const campaignDeps: CampaignDeps = {
+        db,
+        gmail: gmail.client,
+        directSendEnabled: true,
+        dailyCapMax: config.CAMPAIGN_DAILY_CAP_MAX,
+        perCompanyPer14d: config.CAMPAIGN_PER_COMPANY_14D,
+        warmupDays: config.CAMPAIGN_WARMUP_DAYS,
+        warmupDailyCap: config.CAMPAIGN_WARMUP_DAILY_CAP,
+        tickSeconds: 900,
+        messageIdHost: new URL(config.APP_URL).hostname,
+        userEmail: gmail.email,
+      };
+      const drained = await drainCampaigns(campaignDeps, userId);
+      sent += drained.sent;
+      if (hasScope(gmail.scopes, GMAIL_SCOPE.metadata)) {
+        const synced = await syncReplies(campaignDeps, userId);
+        replied += synced.replied;
+        bounced += synced.bounced;
+      }
     }
-    logger.info({ jobId: ctx.jobId, instant, digests }, "notify tick");
+    logger.info({ jobId: ctx.jobId, instant, digests, sent, replied, bounced }, "autopilot tick");
   });
 
   attach(QUEUES.cleanup, async (_payload, ctx) => {
