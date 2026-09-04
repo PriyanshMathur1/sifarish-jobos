@@ -11,6 +11,10 @@ export async function getUserRole(db: Db, userId: string): Promise<"user" | "adm
   return row?.role ?? null;
 }
 
+export async function setUserRole(db: Db, userId: string, role: "user" | "admin"): Promise<void> {
+  await db.update(users).set({ role }).where(eq(users.id, userId));
+}
+
 /**
  * Account deletion (PRD §109): removes the user row; every user-owned table
  * cascades via FK. Audit the intent before calling — the row is gone after.

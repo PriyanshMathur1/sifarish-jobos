@@ -41,6 +41,7 @@ const envSchema = z.object({
   HUNTER_API_KEY: z.string().optional(), // free-tier email finder/verifier, single-contact lookups only
   TELEGRAM_BOT_TOKEN: z.string().optional(), // alerts via a personal bot (BotFather)
   ANTHROPIC_API_KEY: z.string().optional(), // only read when LLM_PERSONALISATION is on
+  ADMIN_EMAILS: z.string().optional(), // comma-separated sign-in emails granted the admin role
   NOTIFY_FROM: z.string().optional(), // From: for SMTP alerts; defaults to "Sifarish <no-reply@APP_URL host>"
 
   // Feature flags (PRD §130)

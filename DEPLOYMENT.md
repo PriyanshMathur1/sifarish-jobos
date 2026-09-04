@@ -64,6 +64,10 @@ need `SMTP_URL` (email) or `TELEGRAM_BOT_TOKEN` (Telegram) in Vercel env.
 | `SMTP_URL`, `NOTIFY_FROM` | email alerts and the daily digest |
 | `LLM_PERSONALISATION=true` + `ANTHROPIC_API_KEY` | optional AI opening line on the compose page |
 | `CONTACT_DISCOVERY=true` | enables admin discovery pages and "Discover all" |
+| `ADMIN_EMAILS` | comma-separated sign-in emails that get the Admin page (first admin bootstrap) |
+
+Note: `vercel.json` (the two daily cron entries) lives in `apps/web`, because
+Vercel reads it from the project's Root Directory, not the repo root.
 
 Google OAuth consent screen: the Gmail client stays in Testing with you as a test
 user; the added scopes (`gmail.send`, `gmail.metadata`) do not need verification
