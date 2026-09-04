@@ -184,3 +184,44 @@ export async function listCompanies(db: Db) {
     .from(companies)
     .orderBy(companies.name);
 }
+
+/**
+ * Upsert the curated company registry (seed-data.ts) into the database.
+ * Idempotent on (ats_provider, ats_identifier); existing rows keep their
+ * status/priority/failure counters. Returns how many rows were new.
+ */
+export async function syncCompanyRegistry(
+  db: Db,
+  seeds: ReadonlyArray<{
+    name: string;
+    domain: string | null;
+    industry: string | null;
+    atsProvider: "greenhouse" | "lever" | "ashby" | "workable" | "smartrecruiters" | "generic-jsonld";
+    atsIdentifier: string;
+    careersUrl?: string;
+  }>,
+): Promise<{ total: number; added: number }> {
+  let added = 0;
+  for (const c of seeds) {
+    const rows = await db
+      .insert(companies)
+      .values({
+        name: c.name,
+        normalizedName: c.name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(),
+        domain: c.domain,
+        industry: c.industry,
+        atsProvider: c.atsProvider,
+        atsIdentifier: c.atsIdentifier,
+        careersUrl: c.careersUrl ?? null,
+        detectionConfidence: "high",
+      })
+      .onConflictDoUpdate({
+        target: [companies.atsProvider, companies.atsIdentifier],
+        set: { name: c.name, domain: c.domain, industry: c.industry },
+      })
+      .returning({ createdAt: companies.createdAt, updatedAt: companies.updatedAt });
+    const r = rows[0];
+    if (r && Math.abs(r.createdAt.getTime() - r.updatedAt.getTime()) < 2000) added += 1;
+  }
+  return { total: seeds.length, added };
+}

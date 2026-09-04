@@ -1,7 +1,8 @@
 import { desc, eq, sql } from "drizzle-orm";
 import { getDb, schema, jobsRepo } from "@sifarish/db";
 import { requireAdmin } from "@/lib/session";
-import { runGlobalRefresh, refreshOneCompany, toggleCompanyStatus, toggleCompanyPriority, addCompanyPage, removeCompanyPage, discoverAllCompanyPages } from "./actions";
+import { runGlobalRefresh, refreshOneCompany, toggleCompanyStatus, toggleCompanyPriority, addCompanyPage, removeCompanyPage, discoverAllCompanyPages, syncRegistry } from "./actions";
+import { COMPANY_SEEDS } from "@sifarish/db";
 import { loadConfig } from "@sifarish/core";
 
 export const metadata = { title: "Admin" };
@@ -61,7 +62,16 @@ export default async function AdminPage() {
       </section>
 
       <section>
-        <h2 className="font-semibold">Sources ({companies.length})</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-semibold">Sources ({companies.length})</h2>
+          {companies.length < COMPANY_SEEDS.length ? (
+            <form action={syncRegistry}>
+              <button type="submit" className="rounded-lg border border-accent px-3 py-1.5 text-sm text-accent hover:bg-accent-soft">
+                Add the {COMPANY_SEEDS.length - companies.length} curated boards missing from this database
+              </button>
+            </form>
+          ) : null}
+        </div>
         <div className="mt-2 overflow-x-auto rounded-xl border border-line bg-white">
           <table className="w-full text-sm">
             <thead className="border-b border-line text-left text-muted">

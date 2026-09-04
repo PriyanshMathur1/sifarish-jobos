@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { loadConfig, logger, PgBossQueue, QUEUES, registerHandlers, SafeFetcher, discoverContacts, emailHash } from "@sifarish/core";
 import { orchestrateRefresh, completeFinishedRuns } from "@sifarish/core/ingestion/orchestrator";
-import { getDb, schema, audit, contactsRepo } from "@sifarish/db";
+import { getDb, schema, audit, contactsRepo, jobsRepo, COMPANY_SEEDS } from "@sifarish/db";
 import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 
@@ -163,4 +163,14 @@ export async function discoverAllCompanyPages(): Promise<void> {
   logger.info({ pages: pages.length, found }, "discover all complete");
   revalidatePath("/admin");
   revalidatePath("/contacts");
+}
+
+/** Bring the database's company registry up to the curated list in the code (idempotent). */
+export async function syncRegistry(): Promise<void> {
+  const { userId } = await requireAdmin();
+  const db = getDb();
+  const result = await jobsRepo.syncCompanyRegistry(db, COMPANY_SEEDS);
+  await audit(db, { actorId: userId, action: "admin.registry.sync", subjectType: "system", meta: result });
+  logger.info(result, "company registry synced");
+  revalidatePath("/admin");
 }

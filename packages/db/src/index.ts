@@ -12,3 +12,4 @@ export * as trackerRepo from "./repo/tracker.ts";
 export * as matchesRepo from "./repo/matches.ts";
 export * as campaignsRepo from "./repo/campaigns.ts";
 export * as applyRepo from "./repo/apply.ts";
+export { COMPANY_SEEDS } from "./seed-data.ts";
