@@ -32,7 +32,7 @@ export const companies = pgTable(
     domain: text("domain"),
     careersUrl: text("careers_url"),
     atsProvider: text("ats_provider", {
-      enum: ["greenhouse", "lever", "ashby", "generic-jsonld"],
+      enum: ["greenhouse", "lever", "ashby", "workable", "smartrecruiters", "generic-jsonld"],
     }),
     atsIdentifier: text("ats_identifier"),
     industry: text("industry"),

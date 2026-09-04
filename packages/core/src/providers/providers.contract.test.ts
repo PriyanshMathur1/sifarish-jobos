@@ -6,6 +6,8 @@ import { greenhouseProvider } from "./greenhouse.ts";
 import { leverProvider } from "./lever.ts";
 import { ashbyProvider } from "./ashby.ts";
 import { genericJsonLdProvider } from "./generic-jsonld.ts";
+import { workableProvider } from "./workable.ts";
+import { smartrecruitersProvider } from "./smartrecruiters.ts";
 import { detectProvider } from "./registry.ts";
 
 /**
@@ -178,5 +180,58 @@ describe("registry detection order", () => {
     expect(
       detectProvider({ url: "https://example.com/careers", html: fx("careers-no-jsonld.html") }),
     ).toBeNull();
+  });
+});
+
+describe("workable", () => {
+  it("detects subdomains", () => {
+    expect(workableProvider.detect({ url: "https://apply.workable.com/kekaish/" })).toMatchObject({ providerId: "workable", atsIdentifier: "kekaish" });
+    expect(workableProvider.detect({ url: "https://kekaish.workable.com" })).toMatchObject({ atsIdentifier: "kekaish" });
+    expect(workableProvider.detect({ url: "https://www.workable.com/" })).toBeNull();
+  });
+
+  it("lists and normalizes the accounts API shape", async () => {
+    const res = await workableProvider.listJobs(fixtureFetcher(fx("workable.json")), { atsIdentifier: "kekaish" });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.value).toHaveLength(2);
+    const n = workableProvider.normalize(res.value[0]!);
+    expect(n.title).toBe("Product Manager, Lending");
+    expect(n.locations).toEqual(["Bengaluru, Karnataka, India"]);
+    expect(n.remoteType).toBe("hybrid");
+    expect(n.applyUrl).toBe("https://apply.workable.com/kekaish/j/AB12CD/apply/");
+    expect(n.sourcePostedAt?.toISOString()).toBe("2026-09-01T00:00:00.000Z");
+    expect(n.descriptionHtml).toContain("Requirements");
+    const r = workableProvider.normalize(res.value[1]!);
+    expect(r.remoteType).toBe("remote");
+    expect(r.locations).toEqual(["India"]);
+  });
+});
+
+describe("smartrecruiters", () => {
+  it("detects company identifiers", () => {
+    expect(smartrecruitersProvider.detect({ url: "https://jobs.smartrecruiters.com/AcmeIndia/123-x" })).toMatchObject({ providerId: "smartrecruiters", atsIdentifier: "AcmeIndia" });
+    expect(smartrecruitersProvider.detect({ url: "https://example.com" })).toBeNull();
+  });
+
+  it("merges list + detail and normalizes", async () => {
+    const list = fx("smartrecruiters-list.json");
+    const detail = fx("smartrecruiters-detail.json");
+    const fetcher = new SafeFetcher({
+      resolve: async () => ["93.184.216.34"],
+      fetchImpl: async (input) => new Response(String(input).includes("/postings/743") ? detail : list, { status: 200 }),
+      sleep: async () => {},
+    });
+    const res = await smartrecruitersProvider.listJobs(fetcher, { atsIdentifier: "AcmeIndia" });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.value).toHaveLength(1);
+    const n = smartrecruitersProvider.normalize(res.value[0]!);
+    expect(n.title).toBe("Growth Product Manager");
+    expect(n.locations).toEqual(["Mumbai, MH, India"]);
+    expect(n.descriptionHtml).toContain("Amplitude");
+    expect(n.applyUrl).toContain("oga=true");
+    expect(n.sourcePostedAt?.toISOString()).toBe("2026-09-02T08:00:00.000Z");
+    expect(detectProvider({ url: "https://jobs.smartrecruiters.com/AcmeIndia" })?.providerId).toBe("smartrecruiters");
   });
 });

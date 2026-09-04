@@ -9,7 +9,7 @@ export interface CompanySeed {
   name: string;
   domain: string | null;
   industry: string | null;
-  atsProvider: "greenhouse" | "lever" | "ashby" | "generic-jsonld";
+  atsProvider: "greenhouse" | "lever" | "ashby" | "workable" | "smartrecruiters" | "generic-jsonld";
   atsIdentifier: string;
   careersUrl?: string;
 }

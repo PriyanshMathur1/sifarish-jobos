@@ -3,13 +3,14 @@ import { signOut } from "@/auth";
 import { requireUser, isAdmin } from "@/lib/session";
 
 const nav = [
-  { href: "/feed", label: "For you" },
-  { href: "/jobs", label: "Jobs" },
-  { href: "/apply", label: "Apply" },
-  { href: "/contacts", label: "Contacts" },
-  { href: "/outreach", label: "Outreach" },
-  { href: "/tracker", label: "Tracker" },
-  { href: "/profile", label: "Profile" },
+  { href: "/feed", label: "For you", mobile: true },
+  { href: "/jobs", label: "Jobs", mobile: true },
+  { href: "/apply", label: "Apply", mobile: true },
+  { href: "/contacts", label: "Contacts", mobile: false },
+  { href: "/outreach", label: "Outreach", mobile: false },
+  { href: "/tracker", label: "Tracker", mobile: true },
+  { href: "/analytics", label: "Analytics", mobile: false },
+  { href: "/profile", label: "Profile", mobile: true },
 ] as const;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -63,11 +64,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         aria-label="Primary mobile"
         className="fixed inset-x-0 bottom-0 z-10 flex justify-around border-t border-line bg-paper py-2 sm:hidden"
       >
-        {nav.map((n) => (
-          <Link key={n.href} href={n.href} className="px-2 py-1 text-xs text-muted">
-            {n.label}
-          </Link>
-        ))}
+        {nav
+          .filter((n) => n.mobile)
+          .map((n) => (
+            <Link key={n.href} href={n.href} className="px-2 py-1 text-xs text-muted">
+              {n.label}
+            </Link>
+          ))}
       </nav>
     </div>
   );

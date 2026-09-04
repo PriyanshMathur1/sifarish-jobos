@@ -52,3 +52,25 @@ reconcile path).
 Alerts go out on every call: instant alerts for new jobs at or above the
 user's band, and the daily digest once its hour (APP_TZ) has passed. Channels
 need `SMTP_URL` (email) or `TELEGRAM_BOT_TOKEN` (Telegram) in Vercel env.
+
+
+## Autopilot environment (Vercel → Settings → Environment Variables)
+
+| Variable | Purpose |
+| --- | --- |
+| `OUTREACH_DIRECT_SEND=true` | turns campaigns on; the Gmail connect flow then asks for send + metadata scopes (reconnect Gmail once after flipping it) |
+| `CAMPAIGN_DAILY_CAP_MAX` (100), `CAMPAIGN_PER_COMPANY_14D` (2), `CAMPAIGN_WARMUP_DAYS` (7), `CAMPAIGN_WARMUP_DAILY_CAP` (10) | campaign rails; defaults are sensible |
+| `TELEGRAM_BOT_TOKEN` | alerts on Telegram (BotFather → token → message the bot → "Detect my Telegram chat" on Profile) |
+| `SMTP_URL`, `NOTIFY_FROM` | email alerts and the daily digest |
+| `LLM_PERSONALISATION=true` + `ANTHROPIC_API_KEY` | optional AI opening line on the compose page |
+| `CONTACT_DISCOVERY=true` | enables admin discovery pages and "Discover all" |
+
+Google OAuth consent screen: the Gmail client stays in Testing with you as a test
+user; the added scopes (`gmail.send`, `gmail.metadata`) do not need verification
+for test users. If Google shows an "unverified app" screen, continue past it.
+
+## Apply runner (your computer)
+
+The runner is not deployed anywhere. On the machine you apply from:
+`pnpm install && pnpm apply:setup`, create a device token on the Apply page,
+fill `apps/apply-runner/.env`, then `pnpm apply`. See `apps/apply-runner/README.md`.

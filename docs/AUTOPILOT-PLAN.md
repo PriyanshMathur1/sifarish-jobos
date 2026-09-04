@@ -1,6 +1,6 @@
 # Sifarish Autopilot: plan
 
-Version: 0.1 (draft for review, September 2026)
+Version: 1.0 (built, September 2026). Status per phase is in README.md; this file keeps the reasoning.
 Amends: `SPEC.md` v1.0. Where this document and SPEC disagree, the decisions in section 1 win once approved.
 
 Goal in one line: Sifarish watches the market continuously, tells Priyansh within minutes when a matching role appears, applies for him wherever that can be done from his own identity without breaking anyone's rules, and runs personalised outreach campaigns from his Gmail at a volume that keeps the mailbox healthy.

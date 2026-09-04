@@ -2,6 +2,8 @@ import type { Detection, JobProvider, ProviderId } from "./types.ts";
 import { greenhouseProvider } from "./greenhouse.ts";
 import { leverProvider } from "./lever.ts";
 import { ashbyProvider } from "./ashby.ts";
+import { workableProvider } from "./workable.ts";
+import { smartrecruitersProvider } from "./smartrecruiters.ts";
 import { genericJsonLdProvider } from "./generic-jsonld.ts";
 
 /** Provider registry — supported ATS adapters, first-party APIs preferred. */
@@ -9,6 +11,8 @@ const providers: JobProvider[] = [
   greenhouseProvider,
   leverProvider,
   ashbyProvider,
+  workableProvider,
+  smartrecruitersProvider,
   genericJsonLdProvider,
 ];
 

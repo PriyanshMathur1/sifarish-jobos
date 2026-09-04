@@ -1,0 +1,33 @@
+{
+  "name": "Keka-ish Fintech",
+  "description": "Synthetic fixture shaped after the Workable accounts API (details=true), 2026-09.",
+  "jobs": [
+    {
+      "title": "Product Manager, Lending",
+      "shortcode": "AB12CD",
+      "code": "PM-01",
+      "country": "India",
+      "city": "Bengaluru",
+      "state": "Karnataka",
+      "telecommuting": false,
+      "department": "Product",
+      "employment_type": "Full-time",
+      "published_on": "2026-09-01",
+      "url": "https://apply.workable.com/kekaish/j/AB12CD/",
+      "application_url": "https://apply.workable.com/kekaish/j/AB12CD/apply/",
+      "description": "<p>Own the lending product. SQL and experimentation a must.</p>",
+      "requirements": "<ul><li>5+ years in product</li></ul>",
+      "locations": [{ "city": "Bengaluru", "region": "Karnataka", "country": "India", "workplaceType": "hybrid" }]
+    },
+    {
+      "title": "Data Analyst",
+      "shortcode": "EF34GH",
+      "telecommuting": true,
+      "employment_type": "Full-time",
+      "published_on": "2026-08-20",
+      "url": "https://apply.workable.com/kekaish/j/EF34GH/",
+      "description": "<p>Remote analyst.</p>",
+      "locations": [{ "country": "India", "workplaceType": "remote" }]
+    }
+  ]
+}

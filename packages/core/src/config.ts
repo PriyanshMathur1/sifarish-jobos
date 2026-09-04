@@ -40,6 +40,7 @@ const envSchema = z.object({
   SMTP_URL: z.string().optional(),
   HUNTER_API_KEY: z.string().optional(), // free-tier email finder/verifier, single-contact lookups only
   TELEGRAM_BOT_TOKEN: z.string().optional(), // alerts via a personal bot (BotFather)
+  ANTHROPIC_API_KEY: z.string().optional(), // only read when LLM_PERSONALISATION is on
   NOTIFY_FROM: z.string().optional(), // From: for SMTP alerts; defaults to "Sifarish <no-reply@APP_URL host>"
 
   // Feature flags (PRD §130)
@@ -53,6 +54,7 @@ const envSchema = z.object({
   CAMPAIGN_WARMUP_DAILY_CAP: z.coerce.number().int().positive().default(10),
   SEMANTIC_MATCHING: bool,
   EMAIL_NOTIFICATIONS: bool,
+  LLM_PERSONALISATION: bool, // opening lines / cover letters as editable suggestions (grill G6 softened)
 
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });

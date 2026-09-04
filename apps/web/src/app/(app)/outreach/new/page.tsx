@@ -2,7 +2,7 @@ import Link from "next/link";
 import { z } from "zod";
 import { desc, eq, and, isNull, inArray, sql } from "drizzle-orm";
 import { getDb, schema } from "@sifarish/db";
-import { prepareOutreach } from "@sifarish/core";
+import { prepareOutreach, buildPersonalizer, loadConfig } from "@sifarish/core";
 import { requireUser } from "@/lib/session";
 import { approveAction } from "../actions";
 
@@ -66,6 +66,39 @@ export default async function NewOutreachPage({
         overrides,
       })
     : null;
+
+  // Optional AI opening line (LLM_PERSONALISATION): a suggestion placed at the
+  // top of the editable body, never sent unseen.
+  const config = loadConfig();
+  const aiOn = config.LLM_PERSONALISATION && !!config.ANTHROPIC_API_KEY;
+  const wantAi = sp.ai === "1";
+  let body = prep?.ok ? prep.value.body : "";
+  let aiNote: string | null = null;
+  if (prep?.ok && aiOn && wantAi && jobId) {
+    const [jobRow] = await db
+      .select({ title: schema.jobs.title, description: schema.jobs.descriptionText, company: schema.companies.name })
+      .from(schema.jobs)
+      .innerJoin(schema.companies, eq(schema.jobs.companyId, schema.companies.id))
+      .where(eq(schema.jobs.id, jobId));
+    const [profile] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, userId));
+    const contact = contacts.find((c) => c.id === contactId);
+    if (jobRow && profile) {
+      const line = await buildPersonalizer(config).openingLine({
+        candidate: { name: profile.fullName, title: profile.currentTitle, skills: profile.skills, yearsExperience: profile.yearsExperience },
+        job: { title: jobRow.title, company: jobRow.company, description: jobRow.description },
+        contact: contact ? { name: contact.name, title: null } : null,
+      });
+      if (line) {
+        // Insert after the greeting line when there is one.
+        const lines = body.split("\n");
+        const greetIdx = lines.findIndex((l) => /^(hi|hello|dear)\b/i.test(l.trim()));
+        if (greetIdx >= 0) lines.splice(greetIdx + 1, 0, "", line);
+        else lines.unshift(line, "");
+        body = lines.join("\n");
+        aiNote = "An AI-suggested opening line was added at the top. Read it; edit or delete it like anything else.";
+      } else aiNote = "The AI suggestion did not come back; the template text is unchanged.";
+    }
+  }
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -164,6 +197,15 @@ export default async function NewOutreachPage({
           className="mt-6 flex flex-col gap-3 rounded-xl border border-accent/40 bg-white p-4"
         >
           <h2 className="font-semibold">Preview — every word is yours to edit</h2>
+          {aiOn && jobId && !wantAi ? (
+            <Link
+              href={`/outreach/new?contact=${contactId}&job=${jobId}&template=${templateId}&ai=1${Object.entries(overrides).map(([k, v]) => `&ov_${k}=${encodeURIComponent(v)}`).join("")}`}
+              className="self-start rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-accent-soft"
+            >
+              Suggest an opening line with AI
+            </Link>
+          ) : null}
+          {aiNote ? <p className="text-sm text-muted">{aiNote}</p> : null}
           <p className="text-sm text-muted">
             To: <span className="font-mono">{prep.value.toEmail}</span>
           </p>
@@ -183,7 +225,7 @@ export default async function NewOutreachPage({
             <textarea
               name="body"
               rows={12}
-              defaultValue={prep.value.body}
+              defaultValue={body}
               className="rounded-lg border border-line px-3 py-2 font-normal"
             />
           </label>

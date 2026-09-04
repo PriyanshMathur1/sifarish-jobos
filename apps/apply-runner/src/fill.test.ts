@@ -17,7 +17,7 @@ let resumePath: string;
 
 beforeAll(async () => {
   if (!browserAvailable) return;
-  browser = await chromium.launch({ executablePath, headless: true });
+  browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
   page = await browser.newPage();
   const dir = mkdtempSync(join(tmpdir(), "sifarish-test-"));
   resumePath = join(dir, "resume.pdf");

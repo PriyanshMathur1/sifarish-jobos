@@ -1,0 +1,18 @@
+{
+  "offset": 0,
+  "limit": 100,
+  "totalFound": 1,
+  "content": [
+    {
+      "id": "743999900000001",
+      "uuid": "b1c2d3",
+      "name": "Growth Product Manager",
+      "refNumber": "REQ-77",
+      "releasedDate": "2026-09-02T08:00:00.000Z",
+      "location": { "city": "Mumbai", "region": "MH", "country": "in", "remote": false, "fullLocation": "Mumbai, MH, India" },
+      "typeOfEmployment": { "label": "Full-time" },
+      "department": { "label": "Product" },
+      "ref": "https://api.smartrecruiters.com/v1/companies/AcmeIndia/postings/743999900000001"
+    }
+  ]
+}

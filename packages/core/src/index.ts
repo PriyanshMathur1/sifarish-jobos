@@ -102,3 +102,10 @@ export {
   GMAIL_SCOPE,
 } from "./outreach/gmail-accounts.ts";
 export { newRfcMessageId } from "./outreach/outreach.ts";
+export {
+  AnthropicPersonalizer,
+  NullPersonalizer,
+  buildPersonalizer,
+  type Personalizer,
+  type PersonalizeInput,
+} from "./outreach/personalize.ts";

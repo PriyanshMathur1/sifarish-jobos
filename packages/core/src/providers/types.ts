@@ -7,7 +7,13 @@ import type { Result } from "../result.ts";
  * Providers receive SafeFetcher; they never construct their own HTTP client.
  */
 
-export type ProviderId = "greenhouse" | "lever" | "ashby" | "generic-jsonld";
+export type ProviderId =
+  | "greenhouse"
+  | "lever"
+  | "ashby"
+  | "workable"
+  | "smartrecruiters"
+  | "generic-jsonld";
 
 export interface CompanySource {
   /** Provider-specific board identifier (e.g. greenhouse board token). */
