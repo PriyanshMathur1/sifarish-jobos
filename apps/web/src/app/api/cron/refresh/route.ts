@@ -44,13 +44,14 @@ export async function POST(req: NextRequest) {
     }
     const orchestrated = await queue.drain(QUEUES.refreshOrchestrate, 2);
     const refreshed = await queue.drain(QUEUES.refreshCompany, 500);
+    const rescored = await queue.drain(QUEUES.matchRecompute, 2);
 
     // Close out only runs whose fan-out fully processed (others keep RUNNING).
     const completed = await completeFinishedRuns(getDb());
     void completed;
 
-    log.info({ orchestrated, refreshed, recovered }, "cron drain complete");
-    return NextResponse.json({ ok: true, orchestrated, refreshed, recovered });
+    log.info({ orchestrated, refreshed, rescored, recovered }, "cron drain complete");
+    return NextResponse.json({ ok: true, orchestrated, refreshed, rescored, recovered });
   } finally {
     await queue.stop();
   }

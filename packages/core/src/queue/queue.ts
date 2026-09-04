@@ -39,6 +39,7 @@ export const QUEUES = {
   refreshOrchestrate: "job-refresh-orchestrate",
   refreshCompany: "job-refresh-company",
   atsDetection: "ats-detection",
+  matchRecompute: "match-recompute",
   cleanup: "cleanup",
 } as const;
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

@@ -62,3 +62,14 @@ export {
 } from "./outreach/outreach.ts";
 export { discoverContacts, contactRelevance, type DiscoveredPerson } from "./contacts/discovery.ts";
 export { HunterClient, type HunterOutcome } from "./contacts/hunter.ts";
+export {
+  scoreJob,
+  bandOf,
+  candidateSeniority,
+  type MatchBand,
+  type MatchJob,
+  type MatchProfile,
+  type MatchResult,
+} from "./matching/matching-engine.ts";
+export { extractSkills } from "./matching/skills-in-text.ts";
+export { recomputeForCompany, recomputeForUser, toMatchProfile } from "./matching/recompute.ts";

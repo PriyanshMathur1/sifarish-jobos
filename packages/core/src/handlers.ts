@@ -6,6 +6,8 @@ import { SafeFetcher } from "./fetch/safe-fetcher.ts";
 import { refreshCompany } from "./ingestion/ingest.ts";
 import { orchestrateRefresh, findMissedSlot } from "./ingestion/orchestrator.ts";
 import { logger } from "./logger.ts";
+import { recomputeForCompany, recomputeForUser } from "./matching/recompute.ts";
+import { matchesRepo } from "@sifarish/db";
 
 export type HandlerMode = "worker" | "drain";
 
@@ -38,6 +40,20 @@ export function registerHandlers(
     const scheduledFor = payload.slot ? new Date(payload.slot) : new Date();
     logger.info({ jobId: ctx.jobId, trigger }, "refresh orchestrate tick");
     await orchestrateRefresh(db, queue, trigger, scheduledFor);
+    // Freshness decays daily, so every run also re-scores the whole graph
+    // once the fan-out has landed (singleton per slot: retries never double it).
+    await queue.enqueue(
+      QUEUES.matchRecompute,
+      { slot: scheduledFor.toISOString() },
+      { singletonKey: `match:${scheduledFor.toISOString().slice(0, 13)}` },
+    );
+  });
+
+  attach<{ slot?: string; userId?: string }>(QUEUES.matchRecompute, async (payload, ctx) => {
+    const userIds = payload.userId ? [payload.userId] : await matchesRepo.userIdsWithProfiles(db);
+    let total = 0;
+    for (const userId of userIds) total += await recomputeForUser(db, userId);
+    logger.info({ jobId: ctx.jobId, users: userIds.length, matches: total }, "match recompute tick");
   });
 
   attach<{ companyId: string; runId: string | null }>(
@@ -52,6 +68,11 @@ export function registerHandlers(
         { jobId: ctx.jobId, companyId: payload.companyId, ...outcome },
         "company refreshed",
       );
+      // Score what just changed for every profiled user. Same handler, same
+      // idempotency: a retry re-scores to identical rows.
+      if (outcome.new + outcome.updated + outcome.reactivated > 0) {
+        await recomputeForCompany(db, payload.companyId);
+      }
     },
   );
 
