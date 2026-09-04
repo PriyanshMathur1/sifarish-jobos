@@ -7,7 +7,7 @@ import { refreshCompany } from "./ingestion/ingest.ts";
 import { orchestrateRefresh, findMissedSlot, tickRefresh } from "./ingestion/orchestrator.ts";
 import { logger } from "./logger.ts";
 import { recomputeForCompany, recomputeForUser } from "./matching/recompute.ts";
-import { matchesRepo } from "@sifarish/db";
+import { matchesRepo, applyRepo } from "@sifarish/db";
 import { buildNotifier } from "./notify/build.ts";
 import { dispatchDigest, dispatchInstant } from "./notify/alerts.ts";
 import { drainCampaigns, syncReplies, type CampaignDeps } from "./outreach/campaigns.ts";
@@ -103,9 +103,12 @@ export function registerHandlers(
     let sent = 0;
     let replied = 0;
     let bounced = 0;
+    let queuedApplies = 0;
     for (const userId of await matchesRepo.userIdsWithProfiles(db)) {
       instant += await dispatchInstant(alertDeps, userId);
       if ((await dispatchDigest(alertDeps, userId)) >= 0) digests += 1;
+      // Apply queue from rules (the runner on the user's PC drains it).
+      queuedApplies += await applyRepo.enqueueFromRules(db, userId);
 
       if (!config.OUTREACH_DIRECT_SEND) continue;
       const gmail = await gmailClientForUser(db, config, userId);
@@ -130,7 +133,7 @@ export function registerHandlers(
         bounced += synced.bounced;
       }
     }
-    logger.info({ jobId: ctx.jobId, instant, digests, sent, replied, bounced }, "autopilot tick");
+    logger.info({ jobId: ctx.jobId, instant, digests, queuedApplies, sent, replied, bounced }, "autopilot tick");
   });
 
   attach(QUEUES.cleanup, async (_payload, ctx) => {

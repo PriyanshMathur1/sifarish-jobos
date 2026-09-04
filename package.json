@@ -14,7 +14,9 @@
     "db:seed": "pnpm --filter @sifarish/db seed",
     "e2e": "playwright test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "apply": "pnpm --filter @sifarish/apply-runner start",
+    "apply:setup": "pnpm --filter @sifarish/apply-runner setup"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

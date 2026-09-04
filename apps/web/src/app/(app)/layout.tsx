@@ -5,6 +5,7 @@ import { requireUser, isAdmin } from "@/lib/session";
 const nav = [
   { href: "/feed", label: "For you" },
   { href: "/jobs", label: "Jobs" },
+  { href: "/apply", label: "Apply" },
   { href: "/contacts", label: "Contacts" },
   { href: "/outreach", label: "Outreach" },
   { href: "/tracker", label: "Tracker" },

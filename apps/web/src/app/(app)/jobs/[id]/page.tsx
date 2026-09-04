@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { getDb, jobsRepo, matchesRepo } from "@sifarish/db";
+import { getDb, jobsRepo, matchesRepo, applyRepo } from "@sifarish/db";
 import { requireUser } from "@/lib/session";
 import { freshnessLabel } from "@/lib/freshness";
 import Link from "next/link";
 import { saveJob, unsaveJob, hideJob } from "../actions";
 import { markAppliedAction } from "../../tracker/actions";
+import { queueJobForApply } from "../../apply/actions";
 import { ExternalLinkIcon, CheckIcon } from "@/components/icons";
 import { MatchBadge } from "@/components/match-badge";
 
@@ -22,10 +23,12 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const { job, companyName, companyIndustry, saved } = row;
 
   // OPEN event (PRD §51) — deduped hourly so revalidations don't inflate it.
-  const [match] = await Promise.all([
+  const [match, attempt] = await Promise.all([
     matchesRepo.matchForJob(db, userId, job.id),
+    applyRepo.attemptForJob(db, userId, job.id),
     jobsRepo.recordOpenOnce(db, userId, job.id),
   ]);
+  const runnerSupported = !!job.applyUrl && (applyRepo.SUPPORTED_APPLY_PROVIDERS as readonly string[]).includes(job.sourceProvider);
 
   const meta = [job.locations.join(" · ") || null, job.remoteType, job.employmentType]
     .filter(Boolean)
@@ -88,6 +91,19 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               {saved ? "Saved ✓" : "Save"}
             </button>
           </form>
+          {runnerSupported ? (
+            attempt ? (
+              <Link href="/apply" className="rounded-lg border border-line px-4 py-2 text-muted hover:bg-accent-soft">
+                Apply runner: {attempt.status.toLowerCase()}
+              </Link>
+            ) : (
+              <form action={queueJobForApply.bind(null, job.id)}>
+                <button type="submit" className="rounded-lg border border-accent px-4 py-2 font-medium text-accent hover:bg-accent-soft">
+                  Queue for apply runner
+                </button>
+              </form>
+            )
+          ) : null}
           <form action={markAppliedAction.bind(null, job.id)}>
             <button
               type="submit"
